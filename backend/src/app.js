@@ -5,9 +5,13 @@ require('dotenv').config();
 const {
   testDatabaseConnection,
 } = require('./config/database');
+
 const missionsRouter = require('./routes/missions');
 const authRouter = require('./routes/auth');
+const attemptsRouter = require('./routes/attempts');
+
 const app = express();
+
 if (!process.env.CORS_ORIGIN) {
   throw new Error('Missing required environment variable: CORS_ORIGIN');
 }
@@ -33,6 +37,8 @@ app.use(
 
 app.use('/api/missions', missionsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/attempts', attemptsRouter);
+
 // Lightweight application health check.
 // This proves Express is running; database readiness will be separate.
 app.get('/api/health', (req, res) => {

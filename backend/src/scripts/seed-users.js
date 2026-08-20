@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
-require('dotenv').config();
+require('dotenv').config({
+  override: true,
+});
 
 const {
   pool,
