@@ -4,13 +4,15 @@ const {
   pool,
 } = require('../config/database');
 
+const authenticate = require('../middleware/authenticate');
+
 const router = express.Router();
 
 // GET /api/missions
 // Returns the published FirstCommit engineering missions
 // that are available to learners.
 
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
@@ -59,7 +61,7 @@ router.get('/', async (req, res) => {
 // Returns one published mission together with the evidence available
 // when the investigation begins and its active competing causes.
 
-router.get('/:scenarioId', async (req, res) => {
+router.get('/:scenarioId', authenticate, async (req, res) => {
   const scenarioId = Number(req.params.scenarioId);
 
   if (!Number.isInteger(scenarioId) || scenarioId <= 0) {
