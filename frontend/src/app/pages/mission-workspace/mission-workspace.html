@@ -38,6 +38,52 @@
         <p class="workspace__summary">
           {{ data.mission.summary }}
         </p>
+
+        <div class="workspace__actions">
+          @if (!currentAttempt()) {
+            <button
+              class="workspace__primary-action"
+              type="button"
+              [disabled]="isStartingAttempt()"
+              (click)="startInvestigation()"
+            >
+              @if (isStartingAttempt()) {
+                Starting Investigation...
+              } @else {
+                Start Investigation
+              }
+            </button>
+          }
+
+          @if (currentAttempt(); as attempt) {
+            <div class="attempt-status">
+              <span
+                class="attempt-status__dot"
+                aria-hidden="true"
+              ></span>
+
+              <div>
+                <p class="attempt-status__label">
+                  ACTIVE INVESTIGATION
+                </p>
+
+                <p class="attempt-status__value">
+                  Attempt #{{ attempt.attemptId }}
+                  · {{ attempt.status }}
+                </p>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (attemptError()) {
+          <p
+            class="workspace__attempt-error"
+            role="alert"
+          >
+            {{ attemptError() }}
+          </p>
+        }
       </div>
     </header>
 

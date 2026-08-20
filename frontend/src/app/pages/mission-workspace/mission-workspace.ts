@@ -8,6 +8,11 @@ import {
 import { ActivatedRoute } from '@angular/router';
 
 import {
+  Attempt,
+  Attempts,
+} from '../../services/attempts';
+
+import {
   MissionDetailResponse,
   Missions,
 } from '../../services/missions';
@@ -20,14 +25,27 @@ import {
 })
 export class MissionWorkspace implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly missionsService = inject(Missions);
+
+  private readonly missionsService =
+    inject(Missions);
+
+  private readonly attemptsService =
+    inject(Attempts);
 
   readonly missionData =
     signal<MissionDetailResponse | null>(null);
 
+  readonly currentAttempt =
+    signal<Attempt | null>(null);
+
   readonly isLoading = signal(true);
 
+  readonly isStartingAttempt = signal(false);
+
   readonly loadError =
+    signal<string | null>(null);
+
+  readonly attemptError =
     signal<string | null>(null);
 
   ngOnInit(): void {
@@ -40,9 +58,11 @@ export class MissionWorkspace implements OnInit {
       scenarioId <= 0
     ) {
       this.isLoading.set(false);
+
       this.loadError.set(
         'A valid mission ID is required.',
       );
+
       return;
     }
 
@@ -56,8 +76,10 @@ export class MissionWorkspace implements OnInit {
           console.log({
             scenarioCode:
               response.mission.scenarioCode,
+
             evidenceCount:
               response.availableEvidence.length,
+
             causeCount:
               response.competingCauses.length,
           });
@@ -65,12 +87,66 @@ export class MissionWorkspace implements OnInit {
 
         error: (error) => {
           this.isLoading.set(false);
+
           this.loadError.set(
             'The selected mission could not be loaded.',
           );
 
           console.error({
             missionLoaded: false,
+            status: error.status,
+          });
+        },
+      });
+  }
+
+  startInvestigation(): void {
+    const data = this.missionData();
+
+    if (
+      !data ||
+      this.isStartingAttempt()
+    ) {
+      return;
+    }
+
+    this.isStartingAttempt.set(true);
+    this.attemptError.set(null);
+
+    this.attemptsService
+      .startAttempt(data.mission.scenarioId)
+      .subscribe({
+        next: (response) => {
+          this.currentAttempt.set(
+            response.attempt,
+          );
+
+          this.isStartingAttempt.set(false);
+
+          console.log({
+            attemptId:
+              response.attempt.attemptId,
+
+            scenarioId:
+              response.attempt.scenarioId,
+
+            status:
+              response.attempt.status,
+
+            created:
+              response.created,
+          });
+        },
+
+        error: (error) => {
+          this.isStartingAttempt.set(false);
+
+          this.attemptError.set(
+            'The investigation could not be started.',
+          );
+
+          console.error({
+            attemptStarted: false,
             status: error.status,
           });
         },
