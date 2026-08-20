@@ -1,1 +1,115 @@
-<p>learner-dashboard works!</p>
+<main class="dashboard">
+  <header class="dashboard__header">
+    <div>
+      <p class="dashboard__eyebrow">FIRSTCOMMIT</p>
+
+      <h1>Learner Mission Control</h1>
+
+      <p class="dashboard__intro">
+        Investigate the evidence. Record what you observe. Follow the reasoning.
+      </p>
+    </div>
+  </header>
+
+  <section
+    class="missions"
+    aria-labelledby="available-missions-title"
+  >
+    <div class="missions__heading">
+      <div>
+        <p class="missions__label">
+          MISSION DIRECTORY
+        </p>
+
+        <h2 id="available-missions-title">
+          Available Missions
+        </h2>
+      </div>
+
+      <p class="missions__count">
+        {{ missions().length }} available
+      </p>
+    </div>
+
+    @if (isLoading()) {
+      <p class="missions__status">
+        Loading mission data...
+      </p>
+    }
+
+    @if (loadError()) {
+      <p
+        class="missions__status missions__status--error"
+        role="alert"
+      >
+        {{ loadError() }}
+      </p>
+    }
+
+    @if (!isLoading() && !loadError()) {
+      <div class="mission-grid">
+        @for (mission of missions(); track mission.scenarioId) {
+          <article class="mission-card">
+            <div class="mission-card__top">
+              <span class="mission-card__code">
+                {{ mission.scenarioCode }}
+              </span>
+
+              <span class="mission-card__severity">
+                {{ mission.severity }}
+              </span>
+            </div>
+
+            <h3>
+              {{ mission.title }}
+            </h3>
+
+            <p class="mission-card__summary">
+              {{ mission.summary }}
+            </p>
+
+            <dl class="mission-card__meta">
+              <div>
+                <dt>Layer</dt>
+                <dd>
+                  {{ mission.affectedLayer }}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Evidence</dt>
+                <dd>
+                  {{ mission.evidenceCount }}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Causes</dt>
+                <dd>
+                  {{ mission.causeCount }}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Estimate</dt>
+                <dd>
+                  {{ mission.estimatedMinutes }} min
+                </dd>
+              </div>
+            </dl>
+
+            <a
+              class="mission-card__action"
+              [routerLink]="[
+                '/learner/missions',
+                mission.scenarioId
+              ]"
+            >
+              Open Mission
+            </a>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</main>

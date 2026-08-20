@@ -7,6 +7,7 @@ import { reviewerRoleGuard } from './guards/reviewer-role-guard';
 import { Landing } from './pages/landing/landing';
 import { LearnerDashboard } from './pages/learner-dashboard/learner-dashboard';
 import { Login } from './pages/login/login';
+import { MissionWorkspace } from './pages/mission-workspace/mission-workspace';
 import { ReviewerDashboard } from './pages/reviewer-dashboard/reviewer-dashboard';
 
 export const routes: Routes = [
@@ -21,6 +22,11 @@ export const routes: Routes = [
   {
     path: 'learner',
     component: LearnerDashboard,
+    canActivate: [authGuard, learnerRoleGuard],
+  },
+  {
+    path: 'learner/missions/:scenarioId',
+    component: MissionWorkspace,
     canActivate: [authGuard, learnerRoleGuard],
   },
   {

@@ -1,0 +1,198 @@
+<main class="workspace">
+  @if (isLoading()) {
+    <section class="workspace__status">
+      <p>Loading mission intelligence...</p>
+    </section>
+  }
+
+  @if (loadError()) {
+    <section
+      class="workspace__status workspace__status--error"
+      role="alert"
+    >
+      <p>{{ loadError() }}</p>
+    </section>
+  }
+
+  @if (missionData(); as data) {
+    <header class="workspace__header">
+      <div>
+        <p class="workspace__eyebrow">
+          FIRSTCOMMIT / MISSION WORKSPACE
+        </p>
+
+        <div class="workspace__identity">
+          <span class="workspace__code">
+            {{ data.mission.scenarioCode }}
+          </span>
+
+          <span class="workspace__severity">
+            {{ data.mission.severity }}
+          </span>
+        </div>
+
+        <h1>
+          {{ data.mission.title }}
+        </h1>
+
+        <p class="workspace__summary">
+          {{ data.mission.summary }}
+        </p>
+      </div>
+    </header>
+
+    <section
+      class="workspace__overview"
+      aria-label="Mission overview"
+    >
+      <article class="overview-item">
+        <p class="overview-item__label">
+          AFFECTED LAYER
+        </p>
+
+        <p>
+          {{ data.mission.affectedLayer }}
+        </p>
+      </article>
+
+      <article class="overview-item">
+        <p class="overview-item__label">
+          ESTIMATED TIME
+        </p>
+
+        <p>
+          {{ data.mission.estimatedMinutes }} min
+        </p>
+      </article>
+
+      <article class="overview-item">
+        <p class="overview-item__label">
+          AVAILABLE EVIDENCE
+        </p>
+
+        <p>
+          {{ data.availableEvidence.length }}
+        </p>
+      </article>
+
+      <article class="overview-item">
+        <p class="overview-item__label">
+          COMPETING CAUSES
+        </p>
+
+        <p>
+          {{ data.competingCauses.length }}
+        </p>
+      </article>
+    </section>
+
+    <section
+      class="workspace__section"
+      aria-labelledby="incident-title"
+    >
+      <div class="section-heading">
+        <p class="section-heading__label">
+          01 / CONTEXT
+        </p>
+
+        <h2 id="incident-title">
+          Incident Report
+        </h2>
+      </div>
+
+      <div class="incident-panel">
+        <p>
+          {{ data.mission.summary }}
+        </p>
+      </div>
+    </section>
+
+    <section
+      class="workspace__section"
+      aria-labelledby="evidence-title"
+    >
+      <div class="section-heading">
+        <p class="section-heading__label">
+          02 / EVIDENCE
+        </p>
+
+        <h2 id="evidence-title">
+          Available Evidence
+        </h2>
+
+        <p>
+          Inspect the available artefacts before deciding
+          what the evidence supports.
+        </p>
+      </div>
+
+      <div class="evidence-grid">
+        @for (
+          evidence of data.availableEvidence;
+          track evidence.evidenceId
+        ) {
+          <article class="evidence-card">
+            <div class="evidence-card__top">
+              <span class="evidence-card__code">
+                {{ evidence.evidenceCode }}
+              </span>
+
+              <span class="evidence-card__type">
+                {{ evidence.evidenceType }}
+              </span>
+            </div>
+
+            <h3>
+              {{ evidence.title }}
+            </h3>
+
+            <pre class="evidence-card__content">{{ evidence.content }}</pre>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section
+      class="workspace__section"
+      aria-labelledby="causes-title"
+    >
+      <div class="section-heading">
+        <p class="section-heading__label">
+          03 / CAUSE ASSESSMENT
+        </p>
+
+        <h2 id="causes-title">
+          Competing Causes
+        </h2>
+
+        <p>
+          These are possibilities to investigate,
+          not answers to select blindly.
+        </p>
+      </div>
+
+      <div class="cause-list">
+        @for (
+          cause of data.competingCauses;
+          track cause.causeOptionId
+        ) {
+          <article class="cause-card">
+            <span class="cause-card__code">
+              {{ cause.causeCode }}
+            </span>
+
+            <div>
+              <h3>
+                {{ cause.label }}
+              </h3>
+
+              <p>
+                {{ cause.description }}
+              </p>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</main>
