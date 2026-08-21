@@ -8,10 +8,10 @@ const authenticate = require('../middleware/authenticate');
 
 const router = express.Router();
 
+// ============================================================
 // POST /api/attempts
-// Starts a learner investigation for a published mission.
-// If an in-progress investigation already exists for the same
-// learner and mission, that existing attempt is returned.
+// Start or resume a learner investigation.
+// ============================================================
 
 router.post('/', authenticate, async (req, res) => {
   if (req.user.role !== 'learner') {
@@ -180,10 +180,168 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
+// ============================================================
+// GET /api/attempts/:attemptId
+// Restore a learner's persisted investigation state.
+// ============================================================
+
+router.get(
+  '/:attemptId',
+  authenticate,
+  async (req, res) => {
+    if (req.user.role !== 'learner') {
+      return res.status(403).json({
+        error: 'learner_access_required',
+        message:
+          'Only learners can access investigation attempts.',
+      });
+    }
+
+    const attemptId = Number(req.params.attemptId);
+
+    if (
+      !Number.isInteger(attemptId) ||
+      attemptId <= 0
+    ) {
+      return res.status(400).json({
+        error: 'invalid_attempt_id',
+        message:
+          'A valid investigation attempt ID is required.',
+      });
+    }
+
+    try {
+      // Ownership is checked here as well.
+      // A learner cannot retrieve another learner's attempt.
+      const attemptResult = await pool.query(
+        `
+          SELECT
+            a.attempt_id::int AS "attemptId",
+            a.learner_id::int AS "learnerId",
+            a.scenario_id::int AS "scenarioId",
+            a.status,
+            a.started_at AS "startedAt",
+            a.submitted_at AS "submittedAt",
+            a.reviewed_at AS "reviewedAt"
+
+          FROM attempts a
+
+          WHERE a.attempt_id = $1
+            AND a.learner_id = $2
+
+          LIMIT 1;
+        `,
+        [
+          attemptId,
+          req.user.userId,
+        ],
+      );
+
+      if (attemptResult.rowCount === 0) {
+        return res.status(404).json({
+          error: 'attempt_not_found',
+          message:
+            'The requested investigation could not be found.',
+        });
+      }
+
+      const attempt = attemptResult.rows[0];
+
+      const stepsResult = await pool.query(
+        `
+          SELECT
+            step_id::int AS "stepId",
+            attempt_id::int AS "attemptId",
+            evidence_id::int AS "evidenceId",
+            step_no::int AS "stepNo",
+            observation,
+            next_action AS "nextAction",
+            reasoning,
+            created_at AS "createdAt"
+
+          FROM investigation_steps
+
+          WHERE attempt_id = $1
+
+          ORDER BY step_no;
+        `,
+        [attemptId],
+      );
+
+      const progressResult = await pool.query(
+        `
+          SELECT
+            COALESCE(
+              MAX(step_no),
+              0
+            )::int AS "completedSteps"
+
+          FROM investigation_steps
+
+          WHERE attempt_id = $1;
+        `,
+        [attemptId],
+      );
+
+      const completedSteps =
+        progressResult.rows[0].completedSteps;
+
+      const availableEvidenceResult =
+        await pool.query(
+          `
+            SELECT
+              evidence_id::int AS "evidenceId",
+              evidence_code AS "evidenceCode",
+              title,
+              evidence_type AS "evidenceType",
+              content,
+              sequence_no::int AS "sequenceNo",
+              unlock_after_step::int AS "unlockAfterStep"
+
+            FROM evidence_items
+
+            WHERE scenario_id = $1
+              AND unlock_after_step <= $2
+
+            ORDER BY sequence_no;
+          `,
+          [
+            attempt.scenarioId,
+            completedSteps,
+          ],
+        );
+
+      return res.status(200).json({
+        attempt,
+
+        progress: {
+          completedSteps,
+        },
+
+        steps: stepsResult.rows,
+
+        availableEvidence:
+          availableEvidenceResult.rows,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to load investigation:',
+        error.message,
+      );
+
+      return res.status(500).json({
+        error: 'attempt_unavailable',
+        message:
+          'The investigation could not be loaded.',
+      });
+    }
+  },
+);
+
+// ============================================================
 // POST /api/attempts/:attemptId/steps
-// Records one learner reasoning step.
-// The server determines the next step number and uses the
-// persisted step count to control progressive evidence access.
+// Record one learner reasoning step.
+// ============================================================
 
 router.post(
   '/:attemptId/steps',
@@ -205,7 +363,8 @@ router.post(
     ) {
       return res.status(400).json({
         error: 'invalid_attempt_id',
-        message: 'A valid investigation attempt ID is required.',
+        message:
+          'A valid investigation attempt ID is required.',
       });
     }
 
@@ -274,7 +433,7 @@ router.post(
     try {
       await client.query('BEGIN');
 
-      // Lock the attempt so two simultaneous requests cannot
+      // Lock the attempt so simultaneous requests cannot
       // calculate the same next step number.
       const attemptResult = await client.query(
         `
@@ -350,7 +509,7 @@ router.post(
             SELECT
               evidence_id::int AS "evidenceId",
               evidence_code AS "evidenceCode",
-              unlock_after_step AS "unlockAfterStep"
+              unlock_after_step::int AS "unlockAfterStep"
 
             FROM evidence_items
 
@@ -508,11 +667,14 @@ router.post(
 
       return res.status(201).json({
         step,
+
         progress: {
           completedSteps: nextStepNo,
         },
+
         availableEvidence:
           availableEvidenceResult.rows,
+
         newlyUnlockedEvidence,
       });
     } catch (error) {
