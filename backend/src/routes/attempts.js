@@ -211,8 +211,6 @@ router.get(
     }
 
     try {
-      // Ownership is checked here as well.
-      // A learner cannot retrieve another learner's attempt.
       const attemptResult = await pool.query(
         `
           SELECT
@@ -433,8 +431,6 @@ router.post(
     try {
       await client.query('BEGIN');
 
-      // Lock the attempt so simultaneous requests cannot
-      // calculate the same next step number.
       const attemptResult = await client.query(
         `
           SELECT
@@ -689,6 +685,312 @@ router.post(
         error: 'investigation_step_unavailable',
         message:
           'The investigation step could not be recorded.',
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// ============================================================
+// PUT /api/attempts/:attemptId/causes/:causeOptionId
+// Create or update the learner's assessment of one hypothesis.
+// ============================================================
+
+router.put(
+  '/:attemptId/causes/:causeOptionId',
+  authenticate,
+  async (req, res) => {
+    if (req.user.role !== 'learner') {
+      return res.status(403).json({
+        error: 'learner_access_required',
+        message:
+          'Only learners can assess competing causes.',
+      });
+    }
+
+    const attemptId = Number(
+      req.params.attemptId,
+    );
+
+    const causeOptionId = Number(
+      req.params.causeOptionId,
+    );
+
+    if (
+      !Number.isInteger(attemptId) ||
+      attemptId <= 0
+    ) {
+      return res.status(400).json({
+        error: 'invalid_attempt_id',
+        message:
+          'A valid investigation attempt ID is required.',
+      });
+    }
+
+    if (
+      !Number.isInteger(causeOptionId) ||
+      causeOptionId <= 0
+    ) {
+      return res.status(400).json({
+        error: 'invalid_cause_option_id',
+        message:
+          'A valid competing cause ID is required.',
+      });
+    }
+
+    const allowedAssessments = [
+      'supported',
+      'eliminated',
+      'unresolved',
+    ];
+
+    const assessment =
+      typeof req.body?.assessment === 'string'
+        ? req.body.assessment
+          .trim()
+          .toLowerCase()
+        : '';
+
+    if (
+      !allowedAssessments.includes(
+        assessment,
+      )
+    ) {
+      return res.status(400).json({
+        error: 'invalid_assessment',
+        message:
+          'Assessment must be supported, eliminated, or unresolved.',
+      });
+    }
+
+    const reasoning =
+      typeof req.body?.reasoning === 'string'
+        ? req.body.reasoning.trim()
+        : '';
+
+    if (!reasoning) {
+      return res.status(400).json({
+        error: 'reasoning_required',
+        message:
+          'Explain why this cause is supported, eliminated, or unresolved.',
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Lock the attempt while the assessment is recorded.
+      const attemptResult = await client.query(
+        `
+          SELECT
+            a.attempt_id::int AS "attemptId",
+            a.learner_id::int AS "learnerId",
+            a.scenario_id::int AS "scenarioId",
+            a.status,
+            s.scenario_code AS "scenarioCode"
+
+          FROM attempts a
+
+          INNER JOIN scenarios s
+            ON s.scenario_id = a.scenario_id
+
+          WHERE a.attempt_id = $1
+            AND a.learner_id = $2
+
+          FOR UPDATE OF a;
+        `,
+        [
+          attemptId,
+          req.user.userId,
+        ],
+      );
+
+      if (attemptResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+
+        return res.status(404).json({
+          error: 'attempt_not_found',
+          message:
+            'The requested investigation could not be found.',
+        });
+      }
+
+      const attempt =
+        attemptResult.rows[0];
+
+      if (
+        attempt.status !== 'in_progress'
+      ) {
+        await client.query('ROLLBACK');
+
+        return res.status(409).json({
+          error: 'invalid_attempt_state',
+          message:
+            'Only an in-progress investigation can update cause assessments.',
+        });
+      }
+
+      // The cause must belong to the same mission
+      // as the learner's attempt.
+      const causeResult = await client.query(
+        `
+          SELECT
+            cause_option_id::int AS "causeOptionId",
+            cause_code AS "causeCode",
+            label,
+            description,
+            sequence_no::int AS "sequenceNo"
+
+          FROM cause_options
+
+          WHERE cause_option_id = $1
+            AND scenario_id = $2
+            AND is_active = TRUE
+
+          LIMIT 1;
+        `,
+        [
+          causeOptionId,
+          attempt.scenarioId,
+        ],
+      );
+
+      if (causeResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+
+        return res.status(400).json({
+          error: 'invalid_cause_option',
+          message:
+            'The selected cause does not belong to this mission.',
+        });
+      }
+
+      const cause =
+        causeResult.rows[0];
+
+      // One row per attempt + cause.
+      // Reassessing the same hypothesis updates the existing row.
+      const assessmentResult =
+        await client.query(
+          `
+            INSERT INTO cause_assessments (
+              attempt_id,
+              cause_option_id,
+              assessment,
+              reasoning
+            )
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4
+            )
+
+            ON CONFLICT (
+              attempt_id,
+              cause_option_id
+            )
+
+            DO UPDATE SET
+              assessment =
+                EXCLUDED.assessment,
+
+              reasoning =
+                EXCLUDED.reasoning,
+
+              updated_at =
+                CURRENT_TIMESTAMP
+
+            RETURNING
+              cause_assessment_id::int
+                AS "causeAssessmentId",
+
+              attempt_id::int
+                AS "attemptId",
+
+              cause_option_id::int
+                AS "causeOptionId",
+
+              assessment,
+              reasoning,
+
+              assessed_at
+                AS "assessedAt",
+
+              updated_at
+                AS "updatedAt";
+          `,
+          [
+            attemptId,
+            causeOptionId,
+            assessment,
+            reasoning,
+          ],
+        );
+
+      const savedAssessment =
+        assessmentResult.rows[0];
+
+      await client.query(
+        `
+          INSERT INTO audit_events (
+            user_id,
+            event_type,
+            entity_type,
+            entity_id,
+            outcome,
+            description,
+            metadata
+          )
+          VALUES (
+            $1,
+            'CAUSE_ASSESSED',
+            'attempt',
+            $2,
+            'success',
+            $3,
+            $4::jsonb
+          );
+        `,
+        [
+          req.user.userId,
+          attemptId,
+          `Learner assessed ${cause.causeCode} as ${assessment} for mission ${attempt.scenarioCode}.`,
+          JSON.stringify({
+            attemptId,
+            scenarioId:
+              attempt.scenarioId,
+            causeOptionId:
+              cause.causeOptionId,
+            causeCode:
+              cause.causeCode,
+            assessment,
+          }),
+        ],
+      );
+
+      await client.query('COMMIT');
+
+      return res.status(200).json({
+        cause,
+        assessment:
+          savedAssessment,
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+
+      console.error(
+        'Failed to save cause assessment:',
+        error.message,
+      );
+
+      return res.status(500).json({
+        error: 'cause_assessment_unavailable',
+        message:
+          'The cause assessment could not be saved.',
       });
     } finally {
       client.release();
