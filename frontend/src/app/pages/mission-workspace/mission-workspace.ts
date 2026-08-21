@@ -9,7 +9,9 @@ import { ActivatedRoute } from '@angular/router';
 
 import {
   Attempt,
+  AttemptStateResponse,
   Attempts,
+  InvestigationStep,
 } from '../../services/attempts';
 
 import {
@@ -38,9 +40,16 @@ export class MissionWorkspace implements OnInit {
   readonly currentAttempt =
     signal<Attempt | null>(null);
 
+  readonly investigationSteps =
+    signal<InvestigationStep[]>([]);
+
+  readonly completedSteps =
+    signal(0);
+
   readonly isLoading = signal(true);
 
-  readonly isStartingAttempt = signal(false);
+  readonly isStartingAttempt =
+    signal(false);
 
   readonly loadError =
     signal<string | null>(null);
@@ -50,7 +59,9 @@ export class MissionWorkspace implements OnInit {
 
   ngOnInit(): void {
     const scenarioId = Number(
-      this.route.snapshot.paramMap.get('scenarioId'),
+      this.route.snapshot.paramMap.get(
+        'scenarioId',
+      ),
     );
 
     if (
@@ -66,38 +77,7 @@ export class MissionWorkspace implements OnInit {
       return;
     }
 
-    this.missionsService
-      .getMission(scenarioId)
-      .subscribe({
-        next: (response) => {
-          this.missionData.set(response);
-          this.isLoading.set(false);
-
-          console.log({
-            scenarioCode:
-              response.mission.scenarioCode,
-
-            evidenceCount:
-              response.availableEvidence.length,
-
-            causeCount:
-              response.competingCauses.length,
-          });
-        },
-
-        error: (error) => {
-          this.isLoading.set(false);
-
-          this.loadError.set(
-            'The selected mission could not be loaded.',
-          );
-
-          console.error({
-            missionLoaded: false,
-            status: error.status,
-          });
-        },
-      });
+    this.loadMission(scenarioId);
   }
 
   startInvestigation(): void {
@@ -114,14 +94,18 @@ export class MissionWorkspace implements OnInit {
     this.attemptError.set(null);
 
     this.attemptsService
-      .startAttempt(data.mission.scenarioId)
+      .startAttempt(
+        data.mission.scenarioId,
+      )
       .subscribe({
         next: (response) => {
           this.currentAttempt.set(
             response.attempt,
           );
 
-          this.isStartingAttempt.set(false);
+          this.restoreAttemptState(
+            response.attempt.attemptId,
+          );
 
           console.log({
             attemptId:
@@ -151,5 +135,118 @@ export class MissionWorkspace implements OnInit {
           });
         },
       });
+  }
+
+  private loadMission(
+    scenarioId: number,
+  ): void {
+    this.missionsService
+      .getMission(scenarioId)
+      .subscribe({
+        next: (response) => {
+          this.missionData.set(response);
+          this.isLoading.set(false);
+
+          console.log({
+            scenarioCode:
+              response.mission.scenarioCode,
+
+            evidenceCount:
+              response.availableEvidence
+                .length,
+
+            causeCount:
+              response.competingCauses
+                .length,
+          });
+        },
+
+        error: (error) => {
+          this.isLoading.set(false);
+
+          this.loadError.set(
+            'The selected mission could not be loaded.',
+          );
+
+          console.error({
+            missionLoaded: false,
+            status: error.status,
+          });
+        },
+      });
+  }
+
+  private restoreAttemptState(
+    attemptId: number,
+  ): void {
+    this.attemptsService
+      .getAttempt(attemptId)
+      .subscribe({
+        next: (state) => {
+          this.applyAttemptState(state);
+
+          this.isStartingAttempt.set(false);
+
+          console.log({
+            restoredAttempt:
+              state.attempt.attemptId,
+
+            completedSteps:
+              state.progress.completedSteps,
+
+            restoredSteps:
+              state.steps.length,
+
+            availableEvidence:
+              state.availableEvidence.map(
+                (evidence) =>
+                  evidence.evidenceCode,
+              ),
+          });
+        },
+
+        error: (error) => {
+          this.isStartingAttempt.set(false);
+
+          this.attemptError.set(
+            'The investigation state could not be restored.',
+          );
+
+          console.error({
+            attemptRestored: false,
+            status: error.status,
+          });
+        },
+      });
+  }
+
+  private applyAttemptState(
+    state: AttemptStateResponse,
+  ): void {
+    this.currentAttempt.set(
+      state.attempt,
+    );
+
+    this.completedSteps.set(
+      state.progress.completedSteps,
+    );
+
+    this.investigationSteps.set(
+      state.steps,
+    );
+
+    const currentMission =
+      this.missionData();
+
+    if (!currentMission) {
+      return;
+    }
+
+    this.missionData.set({
+      ...currentMission,
+
+      availableEvidence:
+        state.availableEvidence,
+    });
   }
 }
