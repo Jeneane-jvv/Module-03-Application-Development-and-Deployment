@@ -5,13 +5,22 @@ import {
   signal,
 } from '@angular/core';
 
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+
 import { ActivatedRoute } from '@angular/router';
 
 import {
   Attempt,
   AttemptStateResponse,
   Attempts,
+  InvestigationEvidence,
   InvestigationStep,
+  RecordStepResponse,
 } from '../../services/attempts';
 
 import {
@@ -20,7 +29,7 @@ import {
 } from '../../services/missions';
 
 @Component({
-  imports: [],
+  imports: [ReactiveFormsModule],
   selector: 'app-mission-workspace',
   styleUrl: './mission-workspace.scss',
   templateUrl: './mission-workspace.html',
@@ -46,9 +55,15 @@ export class MissionWorkspace implements OnInit {
   readonly completedSteps =
     signal(0);
 
+  readonly newlyUnlockedEvidence =
+    signal<InvestigationEvidence[]>([]);
+
   readonly isLoading = signal(true);
 
   readonly isStartingAttempt =
+    signal(false);
+
+  readonly isSavingStep =
     signal(false);
 
   readonly loadError =
@@ -56,6 +71,53 @@ export class MissionWorkspace implements OnInit {
 
   readonly attemptError =
     signal<string | null>(null);
+
+  readonly stepError =
+    signal<string | null>(null);
+
+  readonly stepSuccess =
+    signal<string | null>(null);
+
+  readonly stepForm = new FormGroup({
+    evidenceId: new FormControl<number | null>(
+      null,
+      {
+        validators: [
+          Validators.required,
+        ],
+      },
+    ),
+
+    observation: new FormControl(
+      '',
+      {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+        ],
+      },
+    ),
+
+    nextAction: new FormControl(
+      '',
+      {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+        ],
+      },
+    ),
+
+    reasoning: new FormControl(
+      '',
+      {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+        ],
+      },
+    ),
+  });
 
   ngOnInit(): void {
     const scenarioId = Number(
@@ -131,6 +193,135 @@ export class MissionWorkspace implements OnInit {
 
           console.error({
             attemptStarted: false,
+            status: error.status,
+          });
+        },
+      });
+  }
+
+  submitInvestigationStep(): void {
+    const attempt =
+      this.currentAttempt();
+
+    if (
+      !attempt ||
+      this.isSavingStep()
+    ) {
+      return;
+    }
+
+    if (this.stepForm.invalid) {
+      this.stepForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue =
+      this.stepForm.getRawValue();
+
+    const observation =
+      formValue.observation.trim();
+
+    const nextAction =
+      formValue.nextAction.trim();
+
+    const reasoning =
+      formValue.reasoning.trim();
+
+    if (
+      !observation ||
+      !nextAction ||
+      !reasoning
+    ) {
+      this.stepError.set(
+        'Observation, next action and reasoning are required.',
+      );
+
+      return;
+    }
+
+    this.isSavingStep.set(true);
+    this.stepError.set(null);
+    this.stepSuccess.set(null);
+    this.newlyUnlockedEvidence.set([]);
+
+    this.attemptsService
+      .recordStep(
+        attempt.attemptId,
+        {
+          evidenceId:
+            formValue.evidenceId,
+
+          observation,
+          nextAction,
+          reasoning,
+        },
+      )
+      .subscribe({
+        next: (response) => {
+          this.applyStepResponse(
+            response,
+          );
+
+          this.isSavingStep.set(false);
+
+          this.stepForm.reset({
+            evidenceId: null,
+            observation: '',
+            nextAction: '',
+            reasoning: '',
+          });
+
+          if (
+            response
+              .newlyUnlockedEvidence
+              .length > 0
+          ) {
+            const evidenceCodes =
+              response
+                .newlyUnlockedEvidence
+                .map(
+                  (evidence) =>
+                    evidence.evidenceCode,
+                )
+                .join(', ');
+
+            this.stepSuccess.set(
+              `Investigation step saved. New evidence unlocked: ${evidenceCodes}.`,
+            );
+          } else {
+            this.stepSuccess.set(
+              'Investigation step saved.',
+            );
+          }
+
+          console.log({
+            savedStep:
+              response.step.stepNo,
+
+            completedSteps:
+              response.progress
+                .completedSteps,
+
+            newlyUnlockedEvidence:
+              response
+                .newlyUnlockedEvidence
+                .map(
+                  (evidence) =>
+                    evidence.evidenceCode,
+                ),
+          });
+        },
+
+        error: (error) => {
+          this.isSavingStep.set(false);
+
+          this.stepError.set(
+            error.error?.message ??
+              'The investigation step could not be saved.',
+          );
+
+          console.error({
+            stepSaved: false,
             status: error.status,
           });
         },
@@ -247,6 +438,39 @@ export class MissionWorkspace implements OnInit {
 
       availableEvidence:
         state.availableEvidence,
+    });
+  }
+
+  private applyStepResponse(
+    response: RecordStepResponse,
+  ): void {
+    this.investigationSteps.update(
+      (steps) => [
+        ...steps,
+        response.step,
+      ],
+    );
+
+    this.completedSteps.set(
+      response.progress.completedSteps,
+    );
+
+    this.newlyUnlockedEvidence.set(
+      response.newlyUnlockedEvidence,
+    );
+
+    const currentMission =
+      this.missionData();
+
+    if (!currentMission) {
+      return;
+    }
+
+    this.missionData.set({
+      ...currentMission,
+
+      availableEvidence:
+        response.availableEvidence,
     });
   }
 }
