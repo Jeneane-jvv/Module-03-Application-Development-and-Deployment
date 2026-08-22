@@ -10,6 +10,7 @@ const missionsRouter = require('./routes/missions');
 const authRouter = require('./routes/auth');
 const attemptsRouter = require('./routes/attempts');
 const reviewerRouter = require('./routes/reviewer');
+const experienceRouter = require('./routes/experience');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/api/missions', missionsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/attempts', attemptsRouter);
 app.use('/api/reviewer', reviewerRouter);
+app.use('/api/experience', experienceRouter);
 
 // Lightweight application health check.
 // This proves Express is running; database readiness will be separate.
