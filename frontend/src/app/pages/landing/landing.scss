@@ -1,81 +1,140 @@
 .landing {
   min-height: 100vh;
+
+  background: var(--color-bg);
 }
 
-.hero {
-  min-height: 68vh;
-  display: grid;
-  align-items: center;
+/* ============================================================
+   HERO / DESKTOP MISSION CONTROL COMPOSITION
+   ============================================================ */
 
-  padding: 5rem 1.5rem;
+.hero {
+  padding: 3rem 1.5rem 2.25rem;
 
   border-bottom: 1px solid var(--color-border);
 
   background:
     radial-gradient(
-      circle at 80% 20%,
-      rgba(6, 182, 212, 0.12),
-      transparent 32rem
+      circle at 82% 12%,
+      rgba(6, 182, 212, 0.11),
+      transparent 30rem
+    ),
+    radial-gradient(
+      circle at 12% 82%,
+      rgba(6, 182, 212, 0.045),
+      transparent 26rem
     ),
     var(--color-bg);
 }
 
-.hero__content {
+.hero__layout {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(520px, 1.1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+
   width: min(100%, var(--content-width));
   margin: 0 auto;
 }
 
+.hero__brand {
+  min-width: 0;
+  padding-block: 1rem;
+}
+
 .hero__eyebrow {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.15rem;
 
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .hero h1 {
-  max-width: 780px;
+  max-width: 650px;
   margin: 0;
 
   color: var(--color-text);
 
-  font-size: clamp(2.8rem, 7vw, 5.75rem);
+  font-size: clamp(3rem, 5.5vw, 5rem);
   font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: -0.045em;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.hero h1 span {
+  display: block;
 }
 
 .hero__lead {
-  max-width: 680px;
-  margin: 2rem 0 0;
+  max-width: 590px;
+  margin: 1.6rem 0 0;
 
   color: var(--color-text-muted);
 
-  font-size: clamp(1.05rem, 2vw, 1.25rem);
-  line-height: 1.7;
+  font-size: clamp(1rem, 1.6vw, 1.16rem);
+  line-height: 1.68;
 }
 
 .hero__principle {
-  margin: 1.25rem 0 0;
+  margin: 1rem 0 0;
 
   color: var(--color-text-muted);
-  font-size: 1rem;
+
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 .hero__principle strong {
   color: var(--color-text);
 }
 
+.hero__signal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+
+  width: fit-content;
+  margin-top: 1.65rem;
+  padding: 0.7rem 0.85rem;
+
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 999px;
+
+  background: rgba(6, 182, 212, 0.035);
+
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+}
+
+.hero__signal span:nth-child(odd) {
+  color: var(--color-accent);
+}
+
+.hero__experience {
+  min-width: 0;
+}
+
 .hero__cta {
   display: flex;
+  align-items: center;
+  justify-content: center;
+
   width: fit-content;
 
-  margin-top: 2.25rem;
-  padding: 0.9rem 1.4rem;
+  margin-top: 1.15rem;
+  padding: 0.85rem 1.2rem;
 
   text-decoration: none;
 
@@ -86,17 +145,20 @@
   color: var(--color-bg);
 
   font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+
+  cursor: pointer;
 
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
+    opacity 160ms ease,
     transform 160ms ease;
 }
 
-.hero__cta:hover {
+.hero__cta:hover:not(:disabled) {
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
   transform: translateY(-2px);
@@ -107,24 +169,463 @@
   outline-offset: 3px;
 }
 
-.capabilities {
-  width: min(calc(100% - 3rem), var(--content-width));
-  margin: 0 auto;
-  padding: 4.5rem 0 5rem;
-
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+.hero__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
-.capability {
-  min-height: 220px;
-  padding: 1.75rem;
+/* ============================================================
+   MISSION ENTRY PANEL
+   ============================================================ */
+
+.mission-entry {
+  padding: 1.35rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+
+  background:
+    linear-gradient(
+      150deg,
+      rgba(30, 41, 59, 0.78),
+      rgba(15, 23, 42, 0.9)
+    );
+
+  box-shadow:
+    0 24px 70px rgba(2, 6, 23, 0.18);
+}
+
+.mission-entry--complete {
+  border-color: rgba(6, 182, 212, 0.42);
+}
+
+.mission-entry__heading {
+  max-width: 760px;
+}
+
+.mission-entry__label {
+  margin: 0 0 0.55rem;
+
+  color: var(--color-accent);
+
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.mission-entry__heading h2 {
+  margin: 0;
+
+  color: var(--color-text);
+
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  line-height: 1.2;
+}
+
+.mission-entry__heading > p:last-child {
+  margin: 0.7rem 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 0.82rem;
+  line-height: 1.62;
+}
+
+.mission-entry__form {
+  display: grid;
+  gap: 1rem;
+
+  margin-top: 1.15rem;
+}
+
+.mission-entry__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.mission-entry__field label,
+.mission-entry__roles legend {
+  color: var(--color-text);
+
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mission-entry__field input {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 0.78rem 0.9rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--color-text);
+
+  font: inherit;
+  font-size: 0.88rem;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.mission-entry__field input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+.mission-entry__field input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(6, 182, 212, 0.08);
+}
+
+.mission-entry__roles {
+  padding: 0;
+
+  border: 0;
+}
+
+.mission-entry__roles legend {
+  margin-bottom: 0.6rem;
+}
+
+.mission-entry__role-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.mission-role {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 0.65rem;
+  align-items: flex-start;
+
+  min-height: 80px;
+  padding: 0.8rem;
 
   border: 1px solid var(--color-border);
   border-radius: 0.6rem;
 
-  background: rgba(30, 41, 59, 0.58);
+  background: rgba(15, 23, 42, 0.46);
+
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.mission-role:hover {
+  border-color: rgba(6, 182, 212, 0.45);
+  transform: translateY(-1px);
+}
+
+.mission-role:has(input:checked) {
+  border-color: var(--color-accent);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.mission-role input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mission-role:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.mission-role__number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.mission-role:has(input:checked)
+  .mission-role__number {
+  border-color: rgba(6, 182, 212, 0.5);
+
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--color-accent);
+}
+
+.mission-role__content {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.mission-role__content strong {
+  color: var(--color-text);
+
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.mission-role__content small {
+  color: var(--color-text-muted);
+
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.mission-entry__consent {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+
+  padding: 0.78rem 0.85rem;
+
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  border-radius: 0.6rem;
+
+  background: rgba(6, 182, 212, 0.035);
+
+  color: var(--color-text-muted);
+
+  cursor: pointer;
+}
+
+.mission-entry__consent input {
+  flex: 0 0 auto;
+
+  width: 16px;
+  height: 16px;
+  margin-top: 0.12rem;
+
+  accent-color: var(--color-accent);
+}
+
+.mission-entry__consent span {
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.mission-entry__consent strong {
+  display: block;
+
+  margin-bottom: 0.2rem;
+
+  color: var(--color-text);
+
+  font-size: 0.75rem;
+}
+
+.mission-entry__privacy {
+  margin: -0.35rem 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 0.69rem;
+  line-height: 1.5;
+}
+
+.mission-entry__error {
+  margin: 0;
+
+  color: var(--color-warning);
+
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.mission-entry__error--panel {
+  padding: 0.75rem 0.85rem;
+
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  border-radius: 0.5rem;
+
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.mission-entry__submit {
+  margin-top: 0;
+}
+
+/* ============================================================
+   ACTIVE VISITOR PROFILE
+   ============================================================ */
+
+.visitor-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  margin-top: 1rem;
+}
+
+.visitor-summary__item {
+  min-height: 70px;
+  padding: 0.8rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.visitor-summary__label {
+  display: block;
+
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.visitor-summary__item strong {
+  display: block;
+
+  margin-top: 0.55rem;
+
+  color: var(--color-text);
+
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.privacy-note {
+  margin-top: 0.75rem;
+  padding: 0.8rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.privacy-note--active {
+  border-color: rgba(34, 197, 94, 0.3);
+
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.privacy-note__label {
+  margin: 0;
+
+  color: var(--color-accent);
+
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.privacy-note--active
+  .privacy-note__label {
+  color: rgb(134, 239, 172);
+}
+
+.privacy-note > p:last-child {
+  max-width: 760px;
+  margin: 0.55rem 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.mission-entry__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+
+  margin-top: 0.9rem;
+}
+
+.mission-entry__actions
+  .hero__cta {
+  margin-top: 0;
+}
+
+.mission-entry__secondary {
+  padding: 0.78rem 0.9rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+
+  background: transparent;
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.mission-entry__secondary:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+.mission-entry__secondary:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ============================================================
+   CAPABILITIES / COMPACT SUPPORTING STRIP
+   ============================================================ */
+
+.capabilities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+
+  width: min(calc(100% - 3rem), var(--content-width));
+  margin: 0 auto;
+  padding: 0.9rem 0 1.6rem;
+}
+
+.capability {
+  min-height: 88px;
+  padding: 0.85rem 0.95rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+
+  background: rgba(30, 41, 59, 0.46);
 
   transition:
     border-color 160ms ease,
@@ -132,55 +633,124 @@
 }
 
 .capability:hover {
-  border-color: rgba(6, 182, 212, 0.5);
-  transform: translateY(-3px);
+  border-color: rgba(6, 182, 212, 0.42);
+  transform: translateY(-1px);
+}
+
+.capability__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .capability__label {
-  margin: 0 0 2.75rem;
+  margin: 0;
 
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
+}
+
+.capability__status {
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
 }
 
 .capability h2 {
-  margin: 0;
+  margin: 0.65rem 0 0;
 
   color: var(--color-text);
 
-  font-size: 1.2rem;
+  font-size: 0.92rem;
   font-weight: 650;
+  line-height: 1.25;
 }
 
 .capability p:last-child {
-  margin: 0.8rem 0 0;
+  margin: 0.35rem 0 0;
 
   color: var(--color-text-muted);
 
-  line-height: 1.65;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1080px) {
+  .hero__layout {
+    grid-template-columns: 1fr;
+    gap: 1.8rem;
+  }
+
+  .hero__brand {
+    max-width: 760px;
+    padding-bottom: 0;
+  }
+
+  .hero h1 {
+    max-width: 760px;
+
+    font-size: clamp(3rem, 9vw, 5rem);
+  }
 }
 
 @media (max-width: 800px) {
   .hero {
-    min-height: auto;
-    padding: 5rem 1.25rem;
+    padding: 3rem 1.25rem 1.75rem;
+  }
+
+  .mission-entry__role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .visitor-summary {
+    grid-template-columns: 1fr;
   }
 
   .capabilities {
     width: min(calc(100% - 2.5rem), var(--content-width));
     grid-template-columns: 1fr;
-    padding: 3rem 0 4rem;
+    padding: 1rem 0 2.5rem;
   }
 
   .capability {
     min-height: auto;
   }
+}
 
-  .capability__label {
-    margin-bottom: 1.75rem;
+@media (max-width: 600px) {
+  .hero h1 {
+    font-size: clamp(2.65rem, 15vw, 4rem);
+  }
+
+  .hero__signal {
+    border-radius: 0.6rem;
+  }
+
+  .mission-entry {
+    padding: 1rem;
+  }
+
+  .mission-entry__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mission-entry__actions
+    .hero__cta,
+  .mission-entry__secondary {
+    width: 100%;
+    box-sizing: border-box;
   }
 }

@@ -1,43 +1,442 @@
 <main class="landing">
   <section class="hero">
-    <div class="hero__content">
-      <p class="hero__eyebrow">FIRSTCOMMIT</p>
+    <div class="hero__layout">
+      <div class="hero__brand">
+        <p class="hero__eyebrow">
+          FIRSTCOMMIT
+        </p>
 
-      <h1>Engineering Mission Control</h1>
+        <h1>
+          Engineering
+          <span>Mission Control</span>
+        </h1>
 
-      <p class="hero__lead">
-        Learn to investigate software failures before production teaches you
-        the hard way.
-      </p>
+        <p class="hero__lead">
+          Learn to investigate software failures before production
+          teaches you the hard way.
+        </p>
 
-      <p class="hero__principle">
-        Don't guess the fix.
-        <strong>Follow the evidence.</strong>
-      </p>
+        <p class="hero__principle">
+          Don't guess the fix.
+          <strong>
+            Follow the evidence.
+          </strong>
+        </p>
 
-      <a class="hero__cta" routerLink="/login">
-  Enter Mission Control
-</a>
+        <div
+          class="hero__signal"
+          aria-label="FirstCommit engineering principle"
+        >
+          <span>
+            QUESTION
+          </span>
+
+          <span aria-hidden="true">
+            →
+          </span>
+
+          <span>
+            EVIDENCE
+          </span>
+
+          <span aria-hidden="true">
+            →
+          </span>
+
+          <span>
+            DECISION
+          </span>
+        </div>
+      </div>
+
+      <div class="hero__experience">
+        @if (visitorProfile(); as profile) {
+          <section
+            class="mission-entry mission-entry--complete"
+            aria-labelledby="visitor-welcome-title"
+          >
+            <div class="mission-entry__heading">
+              <p class="mission-entry__label">
+                MISSION PROFILE ACTIVE
+              </p>
+
+              <h2 id="visitor-welcome-title">
+                Welcome, {{ profile.displayName }}.
+              </h2>
+
+              <p>
+                {{ roleWelcome(profile.visitorRole) }}
+              </p>
+            </div>
+
+            <div class="visitor-summary">
+              <div class="visitor-summary__item">
+                <span class="visitor-summary__label">
+                  VISITOR ROLE
+                </span>
+
+                <strong>
+                  {{ roleLabel(profile.visitorRole) }}
+                </strong>
+              </div>
+
+              <div class="visitor-summary__item">
+                <span class="visitor-summary__label">
+                  ACTIVITY LOGGING
+                </span>
+
+                <strong>
+                  @if (profile.persisted) {
+                    Enabled
+                  } @else {
+                    Browser session only
+                  }
+                </strong>
+              </div>
+
+              <div class="visitor-summary__item">
+                <span class="visitor-summary__label">
+                  SESSION
+                </span>
+
+                <strong>
+                  @if (profile.visitorSessionId) {
+                    #{{ profile.visitorSessionId }}
+                  } @else {
+                    Private
+                  }
+                </strong>
+              </div>
+            </div>
+
+            @if (profile.persisted) {
+              <div
+                class="privacy-note privacy-note--active"
+                role="status"
+              >
+                <p class="privacy-note__label">
+                  CONSENT-AWARE LOGGING ACTIVE
+                </p>
+
+                <p>
+                  FirstCommit may record your display name, visitor role,
+                  and approved interaction events for application testing
+                  and portfolio analytics. Passwords, authentication
+                  tokens, IP addresses, browser fingerprints, and
+                  unrestricted private content are not part of this
+                  visitor log.
+                </p>
+              </div>
+            } @else {
+              <div
+                class="privacy-note"
+                role="status"
+              >
+                <p class="privacy-note__label">
+                  PRIVATE VISITOR SESSION
+                </p>
+
+                <p>
+                  Your display name and role are being used only in this
+                  browser session. No visitor identity or interaction
+                  activity is being persisted by the Experience Layer.
+                </p>
+              </div>
+            }
+
+            <div class="mission-entry__actions">
+              <a
+                class="hero__cta"
+                routerLink="/login"
+              >
+                {{ continueLabel(profile.visitorRole) }}
+              </a>
+
+              <button
+                class="mission-entry__secondary"
+                type="button"
+                (click)="changeVisitorProfile()"
+              >
+                Change Mission Profile
+              </button>
+            </div>
+          </section>
+        } @else {
+          <section
+            class="mission-entry"
+            aria-labelledby="mission-entry-title"
+          >
+            <div class="mission-entry__heading">
+              <p class="mission-entry__label">
+                MISSION ENTRY
+              </p>
+
+              <h2 id="mission-entry-title">
+                Who is entering Mission Control?
+              </h2>
+
+              <p>
+                Tell FirstCommit what to call you and how you are
+                exploring the project. Your role will later shape the
+                guidance you receive from Mission Mentor and Error Analyst.
+              </p>
+            </div>
+
+            <form
+              class="mission-entry__form"
+              [formGroup]="entranceForm"
+              (ngSubmit)="enterMissionControl()"
+              novalidate
+            >
+              <div class="mission-entry__field">
+                <label for="displayName">
+                  Display name
+                </label>
+
+                <input
+                  id="displayName"
+                  type="text"
+                  maxlength="80"
+                  autocomplete="name"
+                  formControlName="displayName"
+                  placeholder="What should Mission Control call you?"
+                />
+
+                @if (
+                  entranceForm.controls.displayName.touched &&
+                  entranceForm.controls.displayName.invalid
+                ) {
+                  <p class="mission-entry__error">
+                    Enter a display name of 80 characters or fewer.
+                  </p>
+                }
+              </div>
+
+              <fieldset class="mission-entry__roles">
+                <legend>
+                  I am exploring FirstCommit as:
+                </legend>
+
+                <div class="mission-entry__role-grid">
+                  <label class="mission-role">
+                    <input
+                      type="radio"
+                      formControlName="visitorRole"
+                      value="learner"
+                    />
+
+                    <span class="mission-role__number">
+                      01
+                    </span>
+
+                    <span class="mission-role__content">
+                      <strong>
+                        Learner
+                      </strong>
+
+                      <small>
+                        Investigate evidence and develop technical
+                        reasoning.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label class="mission-role">
+                    <input
+                      type="radio"
+                      formControlName="visitorRole"
+                      value="recruiter"
+                    />
+
+                    <span class="mission-role__number">
+                      02
+                    </span>
+
+                    <span class="mission-role__content">
+                      <strong>
+                        Recruiter / Portfolio Reviewer
+                      </strong>
+
+                      <small>
+                        Explore engineering decisions and the complete
+                        application workflow.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label class="mission-role">
+                    <input
+                      type="radio"
+                      formControlName="visitorRole"
+                      value="educator_assessor"
+                    />
+
+                    <span class="mission-role__number">
+                      03
+                    </span>
+
+                    <span class="mission-role__content">
+                      <strong>
+                        Educator / Assessor
+                      </strong>
+
+                      <small>
+                        Inspect learning evidence, workflow design, and
+                        technical implementation.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label class="mission-role">
+                    <input
+                      type="radio"
+                      formControlName="visitorRole"
+                      value="guest"
+                    />
+
+                    <span class="mission-role__number">
+                      04
+                    </span>
+
+                    <span class="mission-role__content">
+                      <strong>
+                        Guest
+                      </strong>
+
+                      <small>
+                        Explore FirstCommit and experience the engineering
+                        mission concept.
+                      </small>
+                    </span>
+                  </label>
+                </div>
+
+                @if (
+                  entranceForm.controls.visitorRole.touched &&
+                  entranceForm.controls.visitorRole.invalid
+                ) {
+                  <p class="mission-entry__error">
+                    Choose how you are exploring FirstCommit.
+                  </p>
+                }
+              </fieldset>
+
+              <label class="mission-entry__consent">
+                <input
+                  type="checkbox"
+                  formControlName="consentGiven"
+                />
+
+                <span>
+                  <strong>
+                    Optional activity logging
+                  </strong>
+
+                  Allow FirstCommit to store my display name, visitor role,
+                  and approved interaction events for application testing,
+                  portfolio analytics, and later Module 04 evidence.
+                  Sensitive credentials, tokens, IP addresses, and browser
+                  fingerprints are not collected by this visitor layer.
+                </span>
+              </label>
+
+              <p class="mission-entry__privacy">
+                Continue without logging to keep this mission profile
+                private to the current browser session.
+              </p>
+
+              @if (entranceError()) {
+                <p
+                  class="mission-entry__error mission-entry__error--panel"
+                  role="alert"
+                >
+                  {{ entranceError() }}
+                </p>
+              }
+
+              <button
+                class="hero__cta mission-entry__submit"
+                type="submit"
+                [disabled]="
+                  entranceForm.invalid ||
+                  isEntering()
+                "
+              >
+                @if (isEntering()) {
+                  Preparing Mission Control...
+                } @else {
+                  Enter Mission Control
+                }
+              </button>
+            </form>
+          </section>
+        }
+      </div>
     </div>
   </section>
 
-  <section class="capabilities" aria-label="FirstCommit capabilities">
+  <section
+    class="capabilities"
+    aria-label="FirstCommit capabilities"
+  >
     <article class="capability">
-      <p class="capability__label">01</p>
-      <h2>Realistic Incidents</h2>
-      <p>Evidence-driven engineering scenarios.</p>
+      <div class="capability__top">
+        <p class="capability__label">
+          01
+        </p>
+
+        <span class="capability__status">
+          INCIDENT
+        </span>
+      </div>
+
+      <h2>
+        Realistic Incidents
+      </h2>
+
+      <p>
+        Evidence-driven engineering scenarios.
+      </p>
     </article>
 
     <article class="capability">
-      <p class="capability__label">02</p>
-      <h2>Structured Reasoning</h2>
-      <p>Record what you inspected and why.</p>
+      <div class="capability__top">
+        <p class="capability__label">
+          02
+        </p>
+
+        <span class="capability__status">
+          REASON
+        </span>
+      </div>
+
+      <h2>
+        Structured Reasoning
+      </h2>
+
+      <p>
+        Record what you inspected and why.
+      </p>
     </article>
 
     <article class="capability">
-      <p class="capability__label">03</p>
-      <h2>Review &amp; Feedback</h2>
-      <p>See how your investigation developed.</p>
+      <div class="capability__top">
+        <p class="capability__label">
+          03
+        </p>
+
+        <span class="capability__status">
+          REVIEW
+        </span>
+      </div>
+
+      <h2>
+        Review &amp; Feedback
+      </h2>
+
+      <p>
+        See how your investigation developed.
+      </p>
     </article>
   </section>
 </main>
