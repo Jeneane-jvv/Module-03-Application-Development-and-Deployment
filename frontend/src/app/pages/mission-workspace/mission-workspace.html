@@ -64,7 +64,13 @@
 
               <div>
                 <p class="attempt-status__label">
-                  ACTIVE INVESTIGATION
+                  @if (attempt.status === 'in_progress') {
+                    ACTIVE INVESTIGATION
+                  } @else if (attempt.status === 'submitted') {
+                    SUBMITTED FOR REVIEW
+                  } @else {
+                    REVIEWED
+                  }
                 </p>
 
                 <p class="attempt-status__value">
@@ -507,7 +513,7 @@
         </div>
       }
 
-      @if (currentAttempt()) {
+      @if (currentAttempt(); as attempt) {
         <div class="cause-assessment-list">
           @for (
             cause of data.competingCauses;
@@ -576,6 +582,7 @@
               }
 
               @if (
+                attempt.status === 'in_progress' &&
                 selectedCause()?.causeOptionId !==
                 cause.causeOptionId
               ) {
@@ -597,6 +604,7 @@
               }
 
               @if (
+                attempt.status === 'in_progress' &&
                 selectedCause()?.causeOptionId ===
                 cause.causeOptionId
               ) {
@@ -834,6 +842,7 @@
                 id="probableRootCause"
                 rows="4"
                 formControlName="probableRootCause"
+                [readonly]="attempt.status !== 'in_progress'"
                 placeholder="State the most probable technical root cause supported by the investigation."
               ></textarea>
 
@@ -856,6 +865,7 @@
                 id="finalReasoning"
                 rows="8"
                 formControlName="finalReasoning"
+                [readonly]="attempt.status !== 'in_progress'"
                 placeholder="Explain how the evidence and cause assessments support your final conclusion."
               ></textarea>
 
@@ -878,6 +888,7 @@
                 id="recommendedAction"
                 rows="6"
                 formControlName="recommendedAction"
+                [readonly]="attempt.status !== 'in_progress'"
                 placeholder="Recommend the technical action that should be taken to resolve the incident and verify the fix."
               ></textarea>
 
@@ -929,6 +940,177 @@
               }
             </button>
           </form>
+        }
+      }
+    </section>
+
+    <!-- ================================================== -->
+    <!-- 06 / SUBMIT FOR REVIEW                             -->
+    <!-- ================================================== -->
+
+    <section
+      class="workspace__section"
+      aria-labelledby="submission-title"
+    >
+      <div class="section-heading">
+        <p class="section-heading__label">
+          06 / SUBMIT FOR REVIEW
+        </p>
+
+        <h2 id="submission-title">
+          Submit Investigation
+        </h2>
+
+        <p>
+          Submit the completed investigation to the reviewer.
+          Submission is a workflow boundary: learner editing is
+          locked once the investigation has been submitted.
+        </p>
+      </div>
+
+      @if (!currentAttempt()) {
+        <div class="incident-panel">
+          <p>
+            Start or resume the investigation before it can be
+            submitted for review.
+          </p>
+        </div>
+      }
+
+      @if (currentAttempt(); as attempt) {
+        @if (attempt.status === 'in_progress') {
+          @if (
+            evidenceProgress().allEvidenceUnlocked &&
+            causeProgress().allCausesAssessed &&
+            conclusionProgress().isConclusionComplete
+          ) {
+            <p
+              class="reasoning-form__message reasoning-form__message--success"
+              role="status"
+            >
+              Submission readiness confirmed: evidence investigation,
+              cause assessment, and final technical conclusion are complete.
+            </p>
+
+            <div class="incident-panel">
+              <p>
+                Before submitting, review the investigation one final time.
+                After submission, the learner can no longer change reasoning
+                steps, cause assessments, or the final technical conclusion.
+                The investigation will move to the reviewer workflow.
+              </p>
+            </div>
+
+            <label class="submission-confirmation">
+              <input
+                #submissionConfirmation
+                type="checkbox"
+              />
+
+              <span>
+                I have reviewed the investigation and understand that
+                submitting it will lock learner editing.
+              </span>
+            </label>
+
+            @if (submitError()) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+                role="alert"
+              >
+                {{ submitError() }}
+              </p>
+            }
+
+            <button
+              class="workspace__primary-action"
+              type="button"
+              [disabled]="
+                !submissionConfirmation.checked ||
+                isSubmittingAttempt()
+              "
+              (click)="submitForReview()"
+            >
+              @if (isSubmittingAttempt()) {
+                Submitting for Review...
+              } @else {
+                Submit for Review
+              }
+            </button>
+          } @else {
+            <div class="incident-panel">
+              <p>
+                This investigation is not ready to submit yet.
+                Complete the remaining workflow phases first.
+              </p>
+            </div>
+
+            @if (!evidenceProgress().allEvidenceUnlocked) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+              >
+                Evidence investigation is incomplete.
+              </p>
+            }
+
+            @if (!causeProgress().allCausesAssessed) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+              >
+                Cause assessment is incomplete.
+              </p>
+            }
+
+            @if (!conclusionProgress().isConclusionComplete) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+              >
+                Final technical conclusion is incomplete.
+              </p>
+            }
+          }
+        } @else {
+          <div
+            class="investigation-complete"
+            role="status"
+            aria-live="polite"
+          >
+            <p class="investigation-complete__label">
+              @if (attempt.status === 'reviewed') {
+                REVIEW COMPLETE
+              } @else {
+                SUBMITTED FOR REVIEW
+              }
+            </p>
+
+            <h3>
+              @if (attempt.status === 'reviewed') {
+                Reviewer assessment is complete
+              } @else {
+                Investigation is awaiting reviewer assessment
+              }
+            </h3>
+
+            <p class="investigation-complete__progress">
+              Attempt #{{ attempt.attemptId }}
+              · {{ attempt.status }}
+            </p>
+
+            <p>
+              Learner editing is locked for this attempt.
+              The saved investigation record remains available
+              as the evidence submitted for review.
+            </p>
+          </div>
+
+          @if (submitSuccess()) {
+            <p
+              class="reasoning-form__message reasoning-form__message--success"
+              role="status"
+            >
+              {{ submitSuccess() }}
+            </p>
+          }
         }
       }
     </section>

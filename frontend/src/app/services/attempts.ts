@@ -176,6 +176,13 @@ export interface SaveConclusionResponse {
   causeProgress: CauseProgress;
 }
 
+export interface SubmitAttemptResponse {
+  attempt: PersistedAttempt;
+  evidenceProgress: EvidenceProgress;
+  causeProgress: CauseProgress;
+  conclusionProgress: ConclusionProgress;
+}
+
 @Service()
 export class Attempts {
   private readonly http =
@@ -308,6 +315,30 @@ export class Attempts {
     return this.http.put<SaveConclusionResponse>(
       `${this.attemptsUrl}/${attemptId}/conclusion`,
       request,
+      {
+        headers,
+      },
+    );
+  }
+
+  submitAttempt(
+    attemptId: number,
+  ): Observable<SubmitAttemptResponse> {
+    const headers =
+      this.getAuthHeaders();
+
+    if (!headers) {
+      return throwError(
+        () =>
+          new Error(
+            'Authentication is required to submit an investigation for review.',
+          ),
+      );
+    }
+
+    return this.http.post<SubmitAttemptResponse>(
+      `${this.attemptsUrl}/${attemptId}/submit`,
+      {},
       {
         headers,
       },

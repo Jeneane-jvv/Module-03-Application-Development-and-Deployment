@@ -119,6 +119,9 @@ export class MissionWorkspace implements OnInit {
   readonly isSavingConclusion =
     signal(false);
 
+  readonly isSubmittingAttempt =
+    signal(false);
+
   readonly loadError =
     signal<string | null>(
       null,
@@ -155,6 +158,16 @@ export class MissionWorkspace implements OnInit {
     );
 
   readonly conclusionSuccess =
+    signal<string | null>(
+      null,
+    );
+
+  readonly submitError =
+    signal<string | null>(
+      null,
+    );
+
+  readonly submitSuccess =
     signal<string | null>(
       null,
     );
@@ -777,6 +790,109 @@ export class MissionWorkspace implements OnInit {
           this.conclusionError.set(
             error.error?.message ??
               'The final technical conclusion could not be saved.',
+          );
+        },
+      });
+  }
+
+  submitForReview(): void {
+    const attempt =
+      this.currentAttempt();
+
+    if (
+      !attempt ||
+      this.isSubmittingAttempt()
+    ) {
+      return;
+    }
+
+    if (
+      attempt.status !==
+      'in_progress'
+    ) {
+      this.submitError.set(
+        'Only an in-progress investigation can be submitted for review.',
+      );
+
+      return;
+    }
+
+    if (
+      !this.evidenceProgress()
+        .allEvidenceUnlocked
+    ) {
+      this.submitError.set(
+        'Complete the evidence investigation before submitting for review.',
+      );
+
+      return;
+    }
+
+    if (
+      !this.causeProgress()
+        .allCausesAssessed
+    ) {
+      this.submitError.set(
+        'Assess every competing cause before submitting for review.',
+      );
+
+      return;
+    }
+
+    if (
+      !this.conclusionProgress()
+        .isConclusionComplete
+    ) {
+      this.submitError.set(
+        'Save a complete final technical conclusion before submitting for review.',
+      );
+
+      return;
+    }
+
+    this.isSubmittingAttempt.set(true);
+    this.submitError.set(null);
+    this.submitSuccess.set(null);
+
+    this.attemptsService
+      .submitAttempt(
+        attempt.attemptId,
+      )
+      .subscribe({
+        next: (response) => {
+          this.currentAttempt.set(
+            response.attempt,
+          );
+
+          this.evidenceProgress.set(
+            response.evidenceProgress,
+          );
+
+          this.causeProgress.set(
+            response.causeProgress,
+          );
+
+          this.conclusionProgress.set(
+            response.conclusionProgress,
+          );
+
+          this.isSubmittingAttempt.set(
+            false,
+          );
+
+          this.submitSuccess.set(
+            'Investigation submitted for review. Learner editing is now locked.',
+          );
+        },
+
+        error: (error) => {
+          this.isSubmittingAttempt.set(
+            false,
+          );
+
+          this.submitError.set(
+            error.error?.message ??
+              'The investigation could not be submitted for review.',
           );
         },
       });
