@@ -1,8 +1,10 @@
 import {
   Component,
+  ElementRef,
   inject,
   OnInit,
   signal,
+  ViewChild,
 } from '@angular/core';
 
 import {
@@ -20,6 +22,9 @@ import {
 export class ReviewerDashboard implements OnInit {
   private readonly reviewerService =
     inject(Reviewer);
+
+  @ViewChild('reviewDetail')
+  private reviewDetail?: ElementRef<HTMLElement>;
 
   readonly investigations =
     signal<ReviewerInvestigationSummary[]>([]);
@@ -68,6 +73,15 @@ export class ReviewerDashboard implements OnInit {
           );
 
           this.isLoadingDetail.set(false);
+
+          setTimeout(() => {
+            this.reviewDetail
+              ?.nativeElement
+              .scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+          });
 
           console.log({
             reviewerOpenedAttempt:
@@ -137,6 +151,7 @@ export class ReviewerDashboard implements OnInit {
 
           console.log({
             reviewerQueueLoaded: true,
+
             investigationCount:
               response.investigations.length,
 
