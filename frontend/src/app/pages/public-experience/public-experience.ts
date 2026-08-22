@@ -11,6 +11,10 @@ import {
 } from '@angular/router';
 
 import {
+  ErrorAnalyst,
+} from '../../components/error-analyst/error-analyst';
+
+import {
   MissionMentor,
 } from '../../components/mission-mentor/mission-mentor';
 
@@ -38,6 +42,7 @@ interface GuidedTourStep {
 
 @Component({
   imports: [
+    ErrorAnalyst,
     MissionMentor,
     RouterLink,
   ],

@@ -1,0 +1,136 @@
+<section
+  class="error-analyst"
+  aria-labelledby="error-analyst-title"
+>
+  <div class="error-analyst__header">
+    <div>
+      <p class="error-analyst__eyebrow">
+        MISSION SUPPORT / ERROR ANALYST
+      </p>
+
+      <h2 id="error-analyst-title">
+        Interpret the technical signal before deciding what it means.
+      </h2>
+
+      <p class="error-analyst__introduction">
+        {{ introduction() }}
+      </p>
+    </div>
+
+    <div
+      class="error-analyst__boundary"
+      aria-label="Error Analyst boundary"
+    >
+      <span>
+        INTERPRETS EVIDENCE
+      </span>
+
+      <strong>
+        DOES NOT INVENT
+      </strong>
+    </div>
+  </div>
+
+  <div class="error-analyst__prompt-grid">
+    @for (
+      prompt of prompts();
+      track prompt.id
+    ) {
+      <button
+        class="analyst-prompt"
+        type="button"
+        [class.analyst-prompt--active]="
+          selectedPromptId() === prompt.id
+        "
+        (click)="requestAnalysis(prompt)"
+      >
+        <span class="analyst-prompt__number">
+          {{ prompt.number }}
+        </span>
+
+        <span class="analyst-prompt__content">
+          <small>
+            {{ prompt.label }}
+          </small>
+
+          <strong>
+            {{ prompt.title }}
+          </strong>
+
+          <span>
+            {{ prompt.description }}
+          </span>
+        </span>
+      </button>
+    }
+  </div>
+
+  @if (guidance(); as currentGuidance) {
+    <div
+      class="error-analyst__response"
+      aria-live="polite"
+    >
+      <div class="error-analyst__response-heading">
+        <div>
+          <p>
+            ANALYST GUIDANCE
+          </p>
+
+          <h3>
+            {{ currentGuidance.title }}
+          </h3>
+        </div>
+
+        <button
+          class="error-analyst__clear"
+          type="button"
+          (click)="clearAnalysis()"
+        >
+          Clear Analysis
+        </button>
+      </div>
+
+      <p class="error-analyst__message">
+        {{ currentGuidance.message }}
+      </p>
+
+      <div class="error-analyst__checks">
+        <p>
+          TECHNICAL CHECKS
+        </p>
+
+        <ul>
+          @for (
+            check of currentGuidance.checks;
+            track check
+          ) {
+            <li>
+              {{ check }}
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="error-analyst__guardrail">
+        <span>
+          ANALYST BOUNDARY
+        </span>
+
+        <p>
+          {{ currentGuidance.boundary }}
+        </p>
+      </div>
+    </div>
+  } @else {
+    <div class="error-analyst__idle">
+      <p>
+        Choose one technical interpretation prompt above.
+      </p>
+
+      <span>
+        Error Analyst will help read the available signal without
+        fabricating evidence or supplying a final root cause.
+      </span>
+    </div>
+  }
+</section>
