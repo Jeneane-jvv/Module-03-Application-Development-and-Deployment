@@ -182,7 +182,7 @@ router.post('/', authenticate, async (req, res) => {
 
 // ============================================================
 // GET /api/attempts/:attemptId
-// Restore a learner's persisted investigation state.
+// Restore a learner's complete persisted investigation state.
 // ============================================================
 
 router.get(
@@ -197,7 +197,9 @@ router.get(
       });
     }
 
-    const attemptId = Number(req.params.attemptId);
+    const attemptId = Number(
+      req.params.attemptId,
+    );
 
     if (
       !Number.isInteger(attemptId) ||
@@ -211,6 +213,8 @@ router.get(
     }
 
     try {
+      // Restore only an attempt owned by
+      // the authenticated learner.
       const attemptResult = await pool.query(
         `
           SELECT
@@ -243,8 +247,10 @@ router.get(
         });
       }
 
-      const attempt = attemptResult.rows[0];
+      const attempt =
+        attemptResult.rows[0];
 
+      // Restore the persisted reasoning trail.
       const stepsResult = await pool.query(
         `
           SELECT
@@ -266,6 +272,7 @@ router.get(
         [attemptId],
       );
 
+      // Restore the persisted investigation progress.
       const progressResult = await pool.query(
         `
           SELECT
@@ -284,6 +291,7 @@ router.get(
       const completedSteps =
         progressResult.rows[0].completedSteps;
 
+      // Restore only evidence unlocked by persisted progress.
       const availableEvidenceResult =
         await pool.query(
           `
@@ -309,6 +317,52 @@ router.get(
           ],
         );
 
+      // Restore cause assessments already recorded
+      // for this investigation.
+      const causeAssessmentsResult =
+        await pool.query(
+          `
+            SELECT
+              ca.cause_assessment_id::int
+                AS "causeAssessmentId",
+
+              ca.attempt_id::int
+                AS "attemptId",
+
+              ca.cause_option_id::int
+                AS "causeOptionId",
+
+              co.cause_code
+                AS "causeCode",
+
+              co.label,
+
+              ca.assessment,
+              ca.reasoning,
+
+              ca.assessed_at
+                AS "assessedAt",
+
+              ca.updated_at
+                AS "updatedAt"
+
+            FROM cause_assessments ca
+
+            INNER JOIN cause_options co
+              ON co.cause_option_id =
+                 ca.cause_option_id
+
+            WHERE ca.attempt_id = $1
+              AND co.scenario_id = $2
+
+            ORDER BY co.sequence_no;
+          `,
+          [
+            attemptId,
+            attempt.scenarioId,
+          ],
+        );
+
       return res.status(200).json({
         attempt,
 
@@ -316,10 +370,14 @@ router.get(
           completedSteps,
         },
 
-        steps: stepsResult.rows,
+        steps:
+          stepsResult.rows,
 
         availableEvidence:
           availableEvidenceResult.rows,
+
+        causeAssessments:
+          causeAssessmentsResult.rows,
       });
     } catch (error) {
       console.error(
@@ -353,7 +411,9 @@ router.post(
       });
     }
 
-    const attemptId = Number(req.params.attemptId);
+    const attemptId = Number(
+      req.params.attemptId,
+    );
 
     if (
       !Number.isInteger(attemptId) ||
@@ -366,7 +426,8 @@ router.post(
       });
     }
 
-    const evidenceInput = req.body?.evidenceId;
+    const evidenceInput =
+      req.body?.evidenceId;
 
     const evidenceId =
       evidenceInput === null ||
@@ -383,7 +444,8 @@ router.post(
     ) {
       return res.status(400).json({
         error: 'invalid_evidence_id',
-        message: 'A valid evidence ID is required.',
+        message:
+          'A valid evidence ID is required.',
       });
     }
 
@@ -426,37 +488,42 @@ router.post(
       });
     }
 
-    const client = await pool.connect();
+    const client =
+      await pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      const attemptResult = await client.query(
-        `
-          SELECT
-            a.attempt_id::int AS "attemptId",
-            a.learner_id::int AS "learnerId",
-            a.scenario_id::int AS "scenarioId",
-            a.status,
-            s.scenario_code AS "scenarioCode"
+      const attemptResult =
+        await client.query(
+          `
+            SELECT
+              a.attempt_id::int AS "attemptId",
+              a.learner_id::int AS "learnerId",
+              a.scenario_id::int AS "scenarioId",
+              a.status,
+              s.scenario_code AS "scenarioCode"
 
-          FROM attempts a
+            FROM attempts a
 
-          INNER JOIN scenarios s
-            ON s.scenario_id = a.scenario_id
+            INNER JOIN scenarios s
+              ON s.scenario_id =
+                 a.scenario_id
 
-          WHERE a.attempt_id = $1
-            AND a.learner_id = $2
+            WHERE a.attempt_id = $1
+              AND a.learner_id = $2
 
-          FOR UPDATE OF a;
-        `,
-        [
-          attemptId,
-          req.user.userId,
-        ],
-      );
+            FOR UPDATE OF a;
+          `,
+          [
+            attemptId,
+            req.user.userId,
+          ],
+        );
 
-      if (attemptResult.rowCount === 0) {
+      if (
+        attemptResult.rowCount === 0
+      ) {
         await client.query('ROLLBACK');
 
         return res.status(404).json({
@@ -466,9 +533,12 @@ router.post(
         });
       }
 
-      const attempt = attemptResult.rows[0];
+      const attempt =
+        attemptResult.rows[0];
 
-      if (attempt.status !== 'in_progress') {
+      if (
+        attempt.status !== 'in_progress'
+      ) {
         await client.query('ROLLBACK');
 
         return res.status(409).json({
@@ -478,20 +548,21 @@ router.post(
         });
       }
 
-      const progressResult = await client.query(
-        `
-          SELECT
-            COALESCE(
-              MAX(step_no),
-              0
-            )::int AS "completedSteps"
+      const progressResult =
+        await client.query(
+          `
+            SELECT
+              COALESCE(
+                MAX(step_no),
+                0
+              )::int AS "completedSteps"
 
-          FROM investigation_steps
+            FROM investigation_steps
 
-          WHERE attempt_id = $1;
-        `,
-        [attemptId],
-      );
+            WHERE attempt_id = $1;
+          `,
+          [attemptId],
+        );
 
       const completedSteps =
         progressResult.rows[0].completedSteps;
@@ -500,28 +571,33 @@ router.post(
         completedSteps + 1;
 
       if (evidenceId !== null) {
-        const evidenceResult = await client.query(
-          `
-            SELECT
-              evidence_id::int AS "evidenceId",
-              evidence_code AS "evidenceCode",
-              unlock_after_step::int AS "unlockAfterStep"
+        const evidenceResult =
+          await client.query(
+            `
+              SELECT
+                evidence_id::int AS "evidenceId",
+                evidence_code AS "evidenceCode",
+                unlock_after_step::int AS "unlockAfterStep"
 
-            FROM evidence_items
+              FROM evidence_items
 
-            WHERE evidence_id = $1
-              AND scenario_id = $2
+              WHERE evidence_id = $1
+                AND scenario_id = $2
 
-            LIMIT 1;
-          `,
-          [
-            evidenceId,
-            attempt.scenarioId,
-          ],
-        );
+              LIMIT 1;
+            `,
+            [
+              evidenceId,
+              attempt.scenarioId,
+            ],
+          );
 
-        if (evidenceResult.rowCount === 0) {
-          await client.query('ROLLBACK');
+        if (
+          evidenceResult.rowCount === 0
+        ) {
+          await client.query(
+            'ROLLBACK',
+          );
 
           return res.status(400).json({
             error: 'invalid_evidence',
@@ -537,7 +613,9 @@ router.post(
           evidence.unlockAfterStep >
           completedSteps
         ) {
-          await client.query('ROLLBACK');
+          await client.query(
+            'ROLLBACK',
+          );
 
           return res.status(409).json({
             error: 'evidence_locked',
@@ -547,46 +625,48 @@ router.post(
         }
       }
 
-      const stepResult = await client.query(
-        `
-          INSERT INTO investigation_steps (
-            attempt_id,
-            evidence_id,
-            step_no,
-            observation,
-            next_action,
-            reasoning
-          )
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6
-          )
+      const stepResult =
+        await client.query(
+          `
+            INSERT INTO investigation_steps (
+              attempt_id,
+              evidence_id,
+              step_no,
+              observation,
+              next_action,
+              reasoning
+            )
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              $6
+            )
 
-          RETURNING
-            step_id::int AS "stepId",
-            attempt_id::int AS "attemptId",
-            evidence_id::int AS "evidenceId",
-            step_no::int AS "stepNo",
+            RETURNING
+              step_id::int AS "stepId",
+              attempt_id::int AS "attemptId",
+              evidence_id::int AS "evidenceId",
+              step_no::int AS "stepNo",
+              observation,
+              next_action AS "nextAction",
+              reasoning,
+              created_at AS "createdAt";
+          `,
+          [
+            attemptId,
+            evidenceId,
+            nextStepNo,
             observation,
-            next_action AS "nextAction",
+            nextAction,
             reasoning,
-            created_at AS "createdAt";
-        `,
-        [
-          attemptId,
-          evidenceId,
-          nextStepNo,
-          observation,
-          nextAction,
-          reasoning,
-        ],
-      );
+          ],
+        );
 
-      const step = stepResult.rows[0];
+      const step =
+        stepResult.rows[0];
 
       await client.query(
         `
@@ -612,15 +692,21 @@ router.post(
         [
           req.user.userId,
           attemptId,
+
           `Learner recorded investigation step ${nextStepNo} for mission ${attempt.scenarioCode}.`,
+
           JSON.stringify({
             attemptId,
+
             scenarioId:
               attempt.scenarioId,
+
             stepId:
               step.stepId,
+
             stepNo:
               step.stepNo,
+
             evidenceId:
               step.evidenceId,
           }),
@@ -665,7 +751,8 @@ router.post(
         step,
 
         progress: {
-          completedSteps: nextStepNo,
+          completedSteps:
+            nextStepNo,
         },
 
         availableEvidence:
@@ -682,7 +769,9 @@ router.post(
       );
 
       return res.status(500).json({
-        error: 'investigation_step_unavailable',
+        error:
+          'investigation_step_unavailable',
+
         message:
           'The investigation step could not be recorded.',
       });
@@ -694,7 +783,7 @@ router.post(
 
 // ============================================================
 // PUT /api/attempts/:attemptId/causes/:causeOptionId
-// Create or update the learner's assessment of one hypothesis.
+// Create or update one learner cause assessment.
 // ============================================================
 
 router.put(
@@ -703,7 +792,9 @@ router.put(
   async (req, res) => {
     if (req.user.role !== 'learner') {
       return res.status(403).json({
-        error: 'learner_access_required',
+        error:
+          'learner_access_required',
+
         message:
           'Only learners can assess competing causes.',
       });
@@ -723,6 +814,7 @@ router.put(
     ) {
       return res.status(400).json({
         error: 'invalid_attempt_id',
+
         message:
           'A valid investigation attempt ID is required.',
       });
@@ -733,7 +825,9 @@ router.put(
       causeOptionId <= 0
     ) {
       return res.status(400).json({
-        error: 'invalid_cause_option_id',
+        error:
+          'invalid_cause_option_id',
+
         message:
           'A valid competing cause ID is required.',
       });
@@ -746,10 +840,11 @@ router.put(
     ];
 
     const assessment =
-      typeof req.body?.assessment === 'string'
+      typeof req.body?.assessment ===
+      'string'
         ? req.body.assessment
-          .trim()
-          .toLowerCase()
+            .trim()
+            .toLowerCase()
         : '';
 
     if (
@@ -759,60 +854,70 @@ router.put(
     ) {
       return res.status(400).json({
         error: 'invalid_assessment',
+
         message:
           'Assessment must be supported, eliminated, or unresolved.',
       });
     }
 
     const reasoning =
-      typeof req.body?.reasoning === 'string'
+      typeof req.body?.reasoning ===
+      'string'
         ? req.body.reasoning.trim()
         : '';
 
     if (!reasoning) {
       return res.status(400).json({
         error: 'reasoning_required',
+
         message:
           'Explain why this cause is supported, eliminated, or unresolved.',
       });
     }
 
-    const client = await pool.connect();
+    const client =
+      await pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // Lock the attempt while the assessment is recorded.
-      const attemptResult = await client.query(
-        `
-          SELECT
-            a.attempt_id::int AS "attemptId",
-            a.learner_id::int AS "learnerId",
-            a.scenario_id::int AS "scenarioId",
-            a.status,
-            s.scenario_code AS "scenarioCode"
+      const attemptResult =
+        await client.query(
+          `
+            SELECT
+              a.attempt_id::int AS "attemptId",
+              a.learner_id::int AS "learnerId",
+              a.scenario_id::int AS "scenarioId",
+              a.status,
+              s.scenario_code AS "scenarioCode"
 
-          FROM attempts a
+            FROM attempts a
 
-          INNER JOIN scenarios s
-            ON s.scenario_id = a.scenario_id
+            INNER JOIN scenarios s
+              ON s.scenario_id =
+                 a.scenario_id
 
-          WHERE a.attempt_id = $1
-            AND a.learner_id = $2
+            WHERE a.attempt_id = $1
+              AND a.learner_id = $2
 
-          FOR UPDATE OF a;
-        `,
-        [
-          attemptId,
-          req.user.userId,
-        ],
-      );
+            FOR UPDATE OF a;
+          `,
+          [
+            attemptId,
+            req.user.userId,
+          ],
+        );
 
-      if (attemptResult.rowCount === 0) {
-        await client.query('ROLLBACK');
+      if (
+        attemptResult.rowCount === 0
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
 
         return res.status(404).json({
           error: 'attempt_not_found',
+
           message:
             'The requested investigation could not be found.',
         });
@@ -824,45 +929,60 @@ router.put(
       if (
         attempt.status !== 'in_progress'
       ) {
-        await client.query('ROLLBACK');
+        await client.query(
+          'ROLLBACK',
+        );
 
         return res.status(409).json({
-          error: 'invalid_attempt_state',
+          error:
+            'invalid_attempt_state',
+
           message:
             'Only an in-progress investigation can update cause assessments.',
         });
       }
 
-      // The cause must belong to the same mission
-      // as the learner's attempt.
-      const causeResult = await client.query(
-        `
-          SELECT
-            cause_option_id::int AS "causeOptionId",
-            cause_code AS "causeCode",
-            label,
-            description,
-            sequence_no::int AS "sequenceNo"
+      const causeResult =
+        await client.query(
+          `
+            SELECT
+              cause_option_id::int
+                AS "causeOptionId",
 
-          FROM cause_options
+              cause_code
+                AS "causeCode",
 
-          WHERE cause_option_id = $1
-            AND scenario_id = $2
-            AND is_active = TRUE
+              label,
+              description,
 
-          LIMIT 1;
-        `,
-        [
-          causeOptionId,
-          attempt.scenarioId,
-        ],
-      );
+              sequence_no::int
+                AS "sequenceNo"
 
-      if (causeResult.rowCount === 0) {
-        await client.query('ROLLBACK');
+            FROM cause_options
+
+            WHERE cause_option_id = $1
+              AND scenario_id = $2
+              AND is_active = TRUE
+
+            LIMIT 1;
+          `,
+          [
+            causeOptionId,
+            attempt.scenarioId,
+          ],
+        );
+
+      if (
+        causeResult.rowCount === 0
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
 
         return res.status(400).json({
-          error: 'invalid_cause_option',
+          error:
+            'invalid_cause_option',
+
           message:
             'The selected cause does not belong to this mission.',
         });
@@ -871,8 +991,6 @@ router.put(
       const cause =
         causeResult.rows[0];
 
-      // One row per attempt + cause.
-      // Reassessing the same hypothesis updates the existing row.
       const assessmentResult =
         await client.query(
           `
@@ -958,15 +1076,21 @@ router.put(
         [
           req.user.userId,
           attemptId,
+
           `Learner assessed ${cause.causeCode} as ${assessment} for mission ${attempt.scenarioCode}.`,
+
           JSON.stringify({
             attemptId,
+
             scenarioId:
               attempt.scenarioId,
+
             causeOptionId:
               cause.causeOptionId,
+
             causeCode:
               cause.causeCode,
+
             assessment,
           }),
         ],
@@ -976,6 +1100,7 @@ router.put(
 
       return res.status(200).json({
         cause,
+
         assessment:
           savedAssessment,
       });
@@ -988,7 +1113,9 @@ router.put(
       );
 
       return res.status(500).json({
-        error: 'cause_assessment_unavailable',
+        error:
+          'cause_assessment_unavailable',
+
         message:
           'The cause assessment could not be saved.',
       });
