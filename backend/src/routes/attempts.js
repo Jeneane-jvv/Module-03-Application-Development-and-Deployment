@@ -1861,4 +1861,437 @@ router.put(
   },
 );
 
+
+// ============================================================
+// POST /api/attempts/:attemptId/submit
+// Formally submit a completed learner investigation for review.
+// Submission is a one-way workflow transition from in_progress
+// to submitted. The learner's saved work remains readable.
+// ============================================================
+
+router.post(
+  '/:attemptId/submit',
+  authenticate,
+  async (req, res) => {
+    if (req.user.role !== 'learner') {
+      return res.status(403).json({
+        error:
+          'learner_access_required',
+
+        message:
+          'Only learners can submit an investigation for review.',
+      });
+    }
+
+    const attemptId = Number(
+      req.params.attemptId,
+    );
+
+    if (
+      !Number.isInteger(attemptId) ||
+      attemptId <= 0
+    ) {
+      return res.status(400).json({
+        error:
+          'invalid_attempt_id',
+
+        message:
+          'A valid investigation attempt ID is required.',
+      });
+    }
+
+    const client =
+      await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // ------------------------------------------------------
+      // Lock and validate learner ownership before changing
+      // the attempt state.
+      // ------------------------------------------------------
+
+      const attemptResult =
+        await client.query(
+          `
+            SELECT
+              a.attempt_id::int
+                AS "attemptId",
+
+              a.learner_id::int
+                AS "learnerId",
+
+              a.scenario_id::int
+                AS "scenarioId",
+
+              a.status,
+
+              a.started_at
+                AS "startedAt",
+
+              a.submitted_at
+                AS "submittedAt",
+
+              a.reviewed_at
+                AS "reviewedAt",
+
+              a.probable_root_cause
+                AS "probableRootCause",
+
+              a.final_reasoning
+                AS "finalReasoning",
+
+              a.recommended_action
+                AS "recommendedAction",
+
+              s.scenario_code
+                AS "scenarioCode"
+
+            FROM attempts a
+
+            INNER JOIN scenarios s
+              ON s.scenario_id =
+                 a.scenario_id
+
+            WHERE a.attempt_id = $1
+              AND a.learner_id = $2
+
+            FOR UPDATE OF a;
+          `,
+          [
+            attemptId,
+            req.user.userId,
+          ],
+        );
+
+      if (
+        attemptResult.rowCount === 0
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(404).json({
+          error:
+            'attempt_not_found',
+
+          message:
+            'The requested investigation could not be found.',
+        });
+      }
+
+      const attempt =
+        attemptResult.rows[0];
+
+      if (
+        attempt.status !==
+        'in_progress'
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'invalid_attempt_state',
+
+          message:
+            'Only an in-progress investigation can be submitted for review.',
+        });
+      }
+
+      // ------------------------------------------------------
+      // Confirm the evidence-investigation phase is complete.
+      // ------------------------------------------------------
+
+      const investigationProgressResult =
+        await client.query(
+          `
+            SELECT
+              COALESCE(
+                MAX(step_no),
+                0
+              )::int AS "completedSteps"
+
+            FROM investigation_steps
+
+            WHERE attempt_id = $1;
+          `,
+          [
+            attemptId,
+          ],
+        );
+
+      const completedSteps =
+        investigationProgressResult.rows[0]
+          .completedSteps;
+
+      const evidenceProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(*)::int
+                AS "totalEvidenceCount",
+
+              COUNT(*) FILTER (
+                WHERE unlock_after_step <= $2
+              )::int
+                AS "availableEvidenceCount"
+
+            FROM evidence_items
+
+            WHERE scenario_id = $1;
+          `,
+          [
+            attempt.scenarioId,
+            completedSteps,
+          ],
+        );
+
+      const totalEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .totalEvidenceCount;
+
+      const availableEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .availableEvidenceCount;
+
+      const allEvidenceUnlocked =
+        totalEvidenceCount > 0 &&
+        availableEvidenceCount >=
+          totalEvidenceCount;
+
+      if (!allEvidenceUnlocked) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'evidence_progress_incomplete',
+
+          message:
+            'Complete the evidence investigation before submitting for review.',
+        });
+      }
+
+      // ------------------------------------------------------
+      // Confirm every active competing cause has been assessed.
+      // ------------------------------------------------------
+
+      const causeProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(co.cause_option_id)::int
+                AS "totalCauseCount",
+
+              COUNT(ca.cause_assessment_id)::int
+                AS "assessedCauseCount"
+
+            FROM cause_options co
+
+            LEFT JOIN cause_assessments ca
+              ON ca.cause_option_id =
+                 co.cause_option_id
+              AND ca.attempt_id = $2
+
+            WHERE co.scenario_id = $1
+              AND co.is_active = TRUE;
+          `,
+          [
+            attempt.scenarioId,
+            attemptId,
+          ],
+        );
+
+      const totalCauseCount =
+        causeProgressResult.rows[0]
+          .totalCauseCount;
+
+      const assessedCauseCount =
+        causeProgressResult.rows[0]
+          .assessedCauseCount;
+
+      const allCausesAssessed =
+        totalCauseCount > 0 &&
+        assessedCauseCount >=
+          totalCauseCount;
+
+      if (!allCausesAssessed) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'cause_assessment_incomplete',
+
+          message:
+            'Assess every active competing cause before submitting for review.',
+        });
+      }
+
+      // ------------------------------------------------------
+      // Confirm a complete final technical conclusion exists.
+      // ------------------------------------------------------
+
+      const isConclusionComplete =
+        Boolean(
+          attempt.probableRootCause?.trim() &&
+          attempt.finalReasoning?.trim() &&
+          attempt.recommendedAction?.trim(),
+        );
+
+      if (!isConclusionComplete) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'final_conclusion_incomplete',
+
+          message:
+            'Save a complete final technical conclusion before submitting for review.',
+        });
+      }
+
+      // ------------------------------------------------------
+      // Perform the one-way learner submission transition.
+      // The database submission-state constraint independently
+      // verifies the conclusion and timestamp requirements.
+      // ------------------------------------------------------
+
+      const submittedAttemptResult =
+        await client.query(
+          `
+            UPDATE attempts
+
+            SET
+              status = 'submitted',
+              submitted_at = CURRENT_TIMESTAMP
+
+            WHERE attempt_id = $1
+
+            RETURNING
+              attempt_id::int
+                AS "attemptId",
+
+              learner_id::int
+                AS "learnerId",
+
+              scenario_id::int
+                AS "scenarioId",
+
+              status,
+
+              started_at
+                AS "startedAt",
+
+              submitted_at
+                AS "submittedAt",
+
+              reviewed_at
+                AS "reviewedAt";
+          `,
+          [
+            attemptId,
+          ],
+        );
+
+      const submittedAttempt =
+        submittedAttemptResult.rows[0];
+
+      // ------------------------------------------------------
+      // Record the state transition without duplicating the
+      // learner's full conclusion in the audit log.
+      // ------------------------------------------------------
+
+      await client.query(
+        `
+          INSERT INTO audit_events (
+            user_id,
+            event_type,
+            entity_type,
+            entity_id,
+            outcome,
+            description,
+            metadata
+          )
+          VALUES (
+            $1,
+            'MISSION_SUBMITTED',
+            'attempt',
+            $2,
+            'success',
+            $3,
+            $4::jsonb
+          );
+        `,
+        [
+          req.user.userId,
+          attemptId,
+
+          `Learner submitted mission ${attempt.scenarioCode} for review.`,
+
+          JSON.stringify({
+            attemptId,
+            scenarioId:
+              attempt.scenarioId,
+            evidenceComplete:
+              allEvidenceUnlocked,
+            causeAssessmentComplete:
+              allCausesAssessed,
+            conclusionComplete:
+              isConclusionComplete,
+          }),
+        ],
+      );
+
+      await client.query('COMMIT');
+
+      return res.status(200).json({
+        attempt:
+          submittedAttempt,
+
+        evidenceProgress: {
+          availableEvidenceCount,
+          totalEvidenceCount,
+          allEvidenceUnlocked,
+        },
+
+        causeProgress: {
+          assessedCauseCount,
+          totalCauseCount,
+          allCausesAssessed,
+        },
+
+        conclusionProgress: {
+          isConclusionComplete,
+        },
+      });
+    } catch (error) {
+      await client.query(
+        'ROLLBACK',
+      );
+
+      console.error(
+        'Failed to submit investigation:',
+        error.message,
+      );
+
+      return res.status(500).json({
+        error:
+          'submission_unavailable',
+
+        message:
+          'The investigation could not be submitted for review.',
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
+
 module.exports = router;
