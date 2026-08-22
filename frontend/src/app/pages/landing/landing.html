@@ -147,7 +147,7 @@
             <div class="mission-entry__actions">
               <a
                 class="hero__cta"
-                routerLink="/login"
+                [routerLink]="continueRoute(profile.visitorRole)"
               >
                 {{ continueLabel(profile.visitorRole) }}
               </a>

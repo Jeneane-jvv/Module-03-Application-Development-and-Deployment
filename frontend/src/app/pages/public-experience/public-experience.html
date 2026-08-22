@@ -1,0 +1,238 @@
+<main class="public-experience">
+  @if (visitorProfile(); as profile) {
+    <header class="experience-header">
+      <div class="experience-header__inner">
+        <a
+          class="experience-header__brand"
+          routerLink="/"
+        >
+          FIRSTCOMMIT
+        </a>
+
+        <div class="experience-header__status">
+          <span>
+            PUBLIC / READ-ONLY
+          </span>
+
+          <span aria-hidden="true">
+            •
+          </span>
+
+          <span>
+            {{ roleLabel(profile.visitorRole) }}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <section class="experience-hero">
+      <div class="experience-hero__content">
+        <p class="experience-hero__eyebrow">
+          {{ roleEyebrow(profile.visitorRole) }}
+        </p>
+
+        <h1>
+          Welcome, {{ profile.displayName }}.
+        </h1>
+
+        <h2>
+          {{ roleTitle(profile.visitorRole) }}
+        </h2>
+
+        <p class="experience-hero__lead">
+          {{ roleIntroduction(profile.visitorRole) }}
+        </p>
+
+        <div class="experience-context">
+          <div class="experience-context__item">
+            <span>
+              ROLE
+            </span>
+
+            <strong>
+              {{ roleLabel(profile.visitorRole) }}
+            </strong>
+          </div>
+
+          <div class="experience-context__item">
+            <span>
+              ACCESS
+            </span>
+
+            <strong>
+              @if (profile.visitorRole === 'learner') {
+                Secure workspace
+              } @else {
+                Public read-only
+              }
+            </strong>
+          </div>
+
+          <div class="experience-context__item">
+            <span>
+              ACTIVITY LOGGING
+            </span>
+
+            <strong>
+              @if (profile.persisted) {
+                Consent enabled
+              } @else {
+                Browser session only
+              }
+            </strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="experience-route"
+      aria-labelledby="experience-route-title"
+    >
+      <div class="section-heading">
+        <div>
+          <p class="section-heading__eyebrow">
+            YOUR ROUTE THROUGH MISSION CONTROL
+          </p>
+
+          <h2 id="experience-route-title">
+            What this experience will foreground
+          </h2>
+        </div>
+
+        <p>
+          The same FirstCommit product can be explored from different
+          perspectives without weakening the protected learner and
+          reviewer workflows.
+        </p>
+      </div>
+
+      <div class="route-grid">
+        @for (
+          card of routeCards(profile.visitorRole);
+          track card.number
+        ) {
+          <article class="route-card">
+            <div class="route-card__top">
+              <span class="route-card__number">
+                {{ card.number }}
+              </span>
+
+              <span class="route-card__eyebrow">
+                {{ card.eyebrow }}
+              </span>
+            </div>
+
+            <h3>
+              {{ card.title }}
+            </h3>
+
+            <p>
+              {{ card.description }}
+            </p>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="experience-boundary">
+      <div class="experience-boundary__content">
+        <p class="experience-boundary__eyebrow">
+          EXPERIENCE BOUNDARY
+        </p>
+
+        @if (profile.visitorRole === 'learner') {
+          <h2>
+            Real learner work remains authenticated.
+          </h2>
+
+          <p>
+            Mission progress, submissions, reviewer feedback, and
+            account-specific evidence stay inside the protected
+            application.
+          </p>
+
+          <a
+            class="experience-action"
+            routerLink="/login"
+          >
+            {{ primaryActionLabel(profile.visitorRole) }}
+          </a>
+        } @else {
+          <h2>
+            Public exploration stays separate from operational access.
+          </h2>
+
+          <p>
+            Recruiters, assessors, and guests can understand the project
+            without receiving learner credentials or entering the
+            reviewer workspace. The guided public experience is built
+            on this route next.
+          </p>
+
+          <div class="experience-boundary__status">
+            {{ primaryActionLabel(profile.visitorRole) }}
+          </div>
+        }
+
+        <button
+          class="experience-secondary"
+          type="button"
+          (click)="changeVisitorProfile()"
+        >
+          Change Visitor Profile
+        </button>
+      </div>
+
+      <aside class="experience-boundary__principle">
+        <p>
+          FIRSTCOMMIT PRINCIPLE
+        </p>
+
+        <div>
+          <strong>
+            Question
+          </strong>
+
+          <span aria-hidden="true">
+            →
+          </span>
+
+          <strong>
+            Evidence
+          </strong>
+
+          <span aria-hidden="true">
+            →
+          </span>
+
+          <strong>
+            Decision
+          </strong>
+        </div>
+      </aside>
+    </section>
+  } @else {
+    <section class="missing-profile">
+      <p class="missing-profile__eyebrow">
+        MISSION PROFILE REQUIRED
+      </p>
+
+      <h1>
+        Enter Mission Control first.
+      </h1>
+
+      <p>
+        The public experience is role-aware, so FirstCommit needs a
+        visitor name and role before choosing what to foreground.
+      </p>
+
+      <a
+        class="experience-action"
+        routerLink="/"
+      >
+        Return to Mission Entry
+      </a>
+    </section>
+  }
+</main>

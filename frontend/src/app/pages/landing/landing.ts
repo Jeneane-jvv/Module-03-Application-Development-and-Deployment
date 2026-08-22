@@ -234,6 +234,17 @@ export class Landing implements OnInit {
     }
   }
 
+
+  continueRoute(
+    role: VisitorRole,
+  ): string {
+    if (role === 'learner') {
+      return '/login';
+    }
+
+    return '/explore';
+  }
+
   continueLabel(
     role: VisitorRole,
   ): string {
@@ -242,13 +253,13 @@ export class Landing implements OnInit {
         return 'Continue to Secure Access';
 
       case 'recruiter':
-        return 'Continue to FirstCommit';
+        return 'Explore FirstCommit';
 
       case 'educator_assessor':
-        return 'Continue to FirstCommit';
+        return 'Inspect Project Evidence';
 
       case 'guest':
-        return 'Continue to FirstCommit';
+        return 'Explore Mission Control';
     }
   }
 }
