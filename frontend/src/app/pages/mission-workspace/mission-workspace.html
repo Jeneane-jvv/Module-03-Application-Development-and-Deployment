@@ -69,7 +69,7 @@
 
                 <p class="attempt-status__value">
                   Attempt #{{ attempt.attemptId }}
-                  Â· {{ attempt.status }}
+                  · {{ attempt.status }}
                 </p>
               </div>
             </div>
@@ -356,7 +356,7 @@
                     [ngValue]="evidence.evidenceId"
                   >
                     {{ evidence.evidenceCode }}
-                    â€” {{ evidence.title }}
+                    — {{ evidence.title }}
                   </option>
                 }
               </select>
@@ -744,6 +744,191 @@
           >
             {{ causeSuccess() }}
           </p>
+        }
+      }
+    </section>
+
+    <!-- ================================================== -->
+    <!-- 05 / FINAL TECHNICAL CONCLUSION                    -->
+    <!-- ================================================== -->
+
+    <section
+      class="workspace__section"
+      aria-labelledby="conclusion-title"
+    >
+      <div class="section-heading">
+        <p class="section-heading__label">
+          05 / FINAL TECHNICAL CONCLUSION
+        </p>
+
+        <h2 id="conclusion-title">
+          Final Technical Conclusion
+        </h2>
+
+        <p>
+          Synthesize the full investigation into one evidence-based
+          technical conclusion and recommend the action that should
+          be taken before the investigation is submitted for review.
+        </p>
+      </div>
+
+      @if (!currentAttempt()) {
+        <div class="incident-panel">
+          <p>
+            Start or resume the investigation before recording
+            a final technical conclusion.
+          </p>
+        </div>
+      }
+
+      @if (currentAttempt(); as attempt) {
+        @if (!causeProgress().allCausesAssessed) {
+          <div class="incident-panel">
+            <p>
+              Complete the cause assessment before recording
+              the final technical conclusion.
+              {{ causeProgress().assessedCauseCount }}
+              of
+              {{ causeProgress().totalCauseCount }}
+              competing causes have been assessed.
+            </p>
+          </div>
+        } @else {
+          <p
+            class="reasoning-form__message reasoning-form__message--success"
+            role="status"
+          >
+            Cause assessment complete:
+            {{ causeProgress().assessedCauseCount }}
+            of
+            {{ causeProgress().totalCauseCount }}
+            competing causes assessed.
+          </p>
+
+          <form
+            class="reasoning-form conclusion-form"
+            [formGroup]="conclusionForm"
+            (ngSubmit)="submitConclusion()"
+            novalidate
+          >
+            <div class="reasoning-form__header">
+              <p class="reasoning-form__step">
+                @if (conclusionProgress().isConclusionComplete) {
+                  SAVED CONCLUSION
+                } @else {
+                  FINAL SYNTHESIS
+                }
+              </p>
+
+              <h3>
+                Record Final Technical Conclusion
+              </h3>
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="probableRootCause">
+                Probable Root Cause
+              </label>
+
+              <textarea
+                id="probableRootCause"
+                rows="4"
+                formControlName="probableRootCause"
+                placeholder="State the most probable technical root cause supported by the investigation."
+              ></textarea>
+
+              @if (
+                conclusionForm.controls.probableRootCause.touched &&
+                conclusionForm.controls.probableRootCause.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  Identify the most probable root cause.
+                </p>
+              }
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="finalReasoning">
+                Final Reasoning
+              </label>
+
+              <textarea
+                id="finalReasoning"
+                rows="8"
+                formControlName="finalReasoning"
+                placeholder="Explain how the evidence and cause assessments support your final conclusion."
+              ></textarea>
+
+              @if (
+                conclusionForm.controls.finalReasoning.touched &&
+                conclusionForm.controls.finalReasoning.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  Explain how the evidence supports your conclusion.
+                </p>
+              }
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="recommendedAction">
+                Recommended Action
+              </label>
+
+              <textarea
+                id="recommendedAction"
+                rows="6"
+                formControlName="recommendedAction"
+                placeholder="Recommend the technical action that should be taken to resolve the incident and verify the fix."
+              ></textarea>
+
+              @if (
+                conclusionForm.controls.recommendedAction.touched &&
+                conclusionForm.controls.recommendedAction.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  Recommend the technical action that should be taken.
+                </p>
+              }
+            </div>
+
+            @if (conclusionError()) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+                role="alert"
+              >
+                {{ conclusionError() }}
+              </p>
+            }
+
+            @if (conclusionSuccess()) {
+              <p
+                class="reasoning-form__message reasoning-form__message--success"
+                role="status"
+              >
+                {{ conclusionSuccess() }}
+              </p>
+            }
+
+            <button
+              class="workspace__primary-action"
+              type="submit"
+              [disabled]="
+                conclusionForm.invalid ||
+                isSavingConclusion() ||
+                attempt.status !== 'in_progress'
+              "
+            >
+              @if (isSavingConclusion()) {
+                Saving Final Conclusion...
+              } @else if (
+                conclusionProgress().isConclusionComplete
+              ) {
+                Update Final Conclusion
+              } @else {
+                Save Final Conclusion
+              }
+            </button>
+          </form>
         }
       }
     </section>

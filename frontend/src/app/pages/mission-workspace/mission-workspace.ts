@@ -20,7 +20,10 @@ import {
   Attempts,
   CauseAssessment,
   CauseAssessmentStatus,
+  CauseProgress,
+  ConclusionProgress,
   EvidenceProgress,
+  FinalConclusion,
   InvestigationEvidence,
   InvestigationStep,
   RecordStepResponse,
@@ -77,10 +80,29 @@ export class MissionWorkspace implements OnInit {
   readonly causeAssessments =
     signal<CauseAssessment[]>([]);
 
+  readonly causeProgress =
+    signal<CauseProgress>({
+      assessedCauseCount: 0,
+      totalCauseCount: 0,
+      allCausesAssessed: false,
+    });
+
   readonly selectedCause =
     signal<CauseOption | null>(
       null,
     );
+
+  readonly conclusion =
+    signal<FinalConclusion>({
+      probableRootCause: null,
+      finalReasoning: null,
+      recommendedAction: null,
+    });
+
+  readonly conclusionProgress =
+    signal<ConclusionProgress>({
+      isConclusionComplete: false,
+    });
 
   readonly isLoading =
     signal(true);
@@ -92,6 +114,9 @@ export class MissionWorkspace implements OnInit {
     signal(false);
 
   readonly isSavingCause =
+    signal(false);
+
+  readonly isSavingConclusion =
     signal(false);
 
   readonly loadError =
@@ -120,6 +145,16 @@ export class MissionWorkspace implements OnInit {
     );
 
   readonly causeSuccess =
+    signal<string | null>(
+      null,
+    );
+
+  readonly conclusionError =
+    signal<string | null>(
+      null,
+    );
+
+  readonly conclusionSuccess =
     signal<string | null>(
       null,
     );
@@ -181,6 +216,41 @@ export class MissionWorkspace implements OnInit {
       ),
 
     reasoning:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
+  });
+
+  readonly conclusionForm = new FormGroup({
+    probableRootCause:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
+
+    finalReasoning:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
+
+    recommendedAction:
       new FormControl(
         '',
         {
@@ -542,6 +612,10 @@ export class MissionWorkspace implements OnInit {
             },
           );
 
+          this.causeProgress.set(
+            response.causeProgress,
+          );
+
           this.isSavingCause.set(false);
 
           this.causeSuccess.set(
@@ -562,6 +636,147 @@ export class MissionWorkspace implements OnInit {
           this.causeError.set(
             error.error?.message ??
               'The cause assessment could not be saved.',
+          );
+        },
+      });
+  }
+
+  submitConclusion(): void {
+    const attempt =
+      this.currentAttempt();
+
+    if (
+      !attempt ||
+      this.isSavingConclusion()
+    ) {
+      return;
+    }
+
+    if (
+      !this.evidenceProgress()
+        .allEvidenceUnlocked
+    ) {
+      this.conclusionError.set(
+        'Complete the evidence investigation before saving the final technical conclusion.',
+      );
+
+      return;
+    }
+
+    if (
+      !this.causeProgress()
+        .allCausesAssessed
+    ) {
+      this.conclusionError.set(
+        'Assess every competing cause before saving the final technical conclusion.',
+      );
+
+      return;
+    }
+
+    if (this.conclusionForm.invalid) {
+      this.conclusionForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue =
+      this.conclusionForm.getRawValue();
+
+    const probableRootCause =
+      formValue.probableRootCause.trim();
+
+    const finalReasoning =
+      formValue.finalReasoning.trim();
+
+    const recommendedAction =
+      formValue.recommendedAction.trim();
+
+    if (!probableRootCause) {
+      this.conclusionError.set(
+        'Identify the most probable root cause.',
+      );
+
+      return;
+    }
+
+    if (!finalReasoning) {
+      this.conclusionError.set(
+        'Explain how the evidence supports your final technical conclusion.',
+      );
+
+      return;
+    }
+
+    if (!recommendedAction) {
+      this.conclusionError.set(
+        'Recommend the technical action that should be taken.',
+      );
+
+      return;
+    }
+
+    this.isSavingConclusion.set(true);
+    this.conclusionError.set(null);
+    this.conclusionSuccess.set(null);
+
+    this.attemptsService
+      .saveConclusion(
+        attempt.attemptId,
+        {
+          probableRootCause,
+          finalReasoning,
+          recommendedAction,
+        },
+      )
+      .subscribe({
+        next: (response) => {
+          this.conclusion.set(
+            response.conclusion,
+          );
+
+          this.conclusionProgress.set(
+            response.conclusionProgress,
+          );
+
+          this.evidenceProgress.set(
+            response.evidenceProgress,
+          );
+
+          this.causeProgress.set(
+            response.causeProgress,
+          );
+
+          this.conclusionForm.reset({
+            probableRootCause:
+              response.conclusion
+                .probableRootCause ?? '',
+
+            finalReasoning:
+              response.conclusion
+                .finalReasoning ?? '',
+
+            recommendedAction:
+              response.conclusion
+                .recommendedAction ?? '',
+          });
+
+          this.isSavingConclusion.set(
+            false,
+          );
+
+          this.conclusionSuccess.set(
+            'Final technical conclusion saved. You can continue reviewing and editing it before submission.',
+          );
+        },
+
+        error: (error) => {
+          this.isSavingConclusion.set(
+            false,
+          );
+
+          this.conclusionError.set(
+            error.error?.message ??
+              'The final technical conclusion could not be saved.',
           );
         },
       });
@@ -624,6 +839,12 @@ export class MissionWorkspace implements OnInit {
             evidenceProgress:
               state.evidenceProgress,
 
+            causeProgress:
+              state.causeProgress,
+
+            conclusionProgress:
+              state.conclusionProgress,
+
             restoredSteps:
               state.steps.length,
 
@@ -685,6 +906,32 @@ export class MissionWorkspace implements OnInit {
     this.causeAssessments.set(
       state.causeAssessments,
     );
+
+    this.causeProgress.set(
+      state.causeProgress,
+    );
+
+    this.conclusion.set(
+      state.conclusion,
+    );
+
+    this.conclusionProgress.set(
+      state.conclusionProgress,
+    );
+
+    this.conclusionForm.reset({
+      probableRootCause:
+        state.conclusion
+          .probableRootCause ?? '',
+
+      finalReasoning:
+        state.conclusion
+          .finalReasoning ?? '',
+
+      recommendedAction:
+        state.conclusion
+          .recommendedAction ?? '',
+    });
 
     const currentMission =
       this.missionData();

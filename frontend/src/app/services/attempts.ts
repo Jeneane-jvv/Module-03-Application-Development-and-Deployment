@@ -79,6 +79,12 @@ export interface EvidenceProgress {
   allEvidenceUnlocked: boolean;
 }
 
+export interface CauseProgress {
+  assessedCauseCount: number;
+  totalCauseCount: number;
+  allCausesAssessed: boolean;
+}
+
 export interface CauseAssessment {
   causeAssessmentId: number;
   attemptId: number;
@@ -91,10 +97,23 @@ export interface CauseAssessment {
   updatedAt: string;
 }
 
+export interface FinalConclusion {
+  probableRootCause: string | null;
+  finalReasoning: string | null;
+  recommendedAction: string | null;
+}
+
+export interface ConclusionProgress {
+  isConclusionComplete: boolean;
+}
+
 export interface AttemptStateResponse {
   attempt: PersistedAttempt;
   progress: AttemptProgress;
   evidenceProgress: EvidenceProgress;
+  causeProgress: CauseProgress;
+  conclusion: FinalConclusion;
+  conclusionProgress: ConclusionProgress;
   steps: InvestigationStep[];
   availableEvidence: InvestigationEvidence[];
   causeAssessments: CauseAssessment[];
@@ -141,6 +160,20 @@ export interface SavedCauseAssessment {
 export interface AssessCauseResponse {
   cause: AssessedCause;
   assessment: SavedCauseAssessment;
+  causeProgress: CauseProgress;
+}
+
+export interface SaveConclusionRequest {
+  probableRootCause: string;
+  finalReasoning: string;
+  recommendedAction: string;
+}
+
+export interface SaveConclusionResponse {
+  conclusion: FinalConclusion;
+  conclusionProgress: ConclusionProgress;
+  evidenceProgress: EvidenceProgress;
+  causeProgress: CauseProgress;
 }
 
 @Service()
@@ -249,6 +282,31 @@ export class Attempts {
 
     return this.http.put<AssessCauseResponse>(
       `${this.attemptsUrl}/${attemptId}/causes/${causeOptionId}`,
+      request,
+      {
+        headers,
+      },
+    );
+  }
+
+  saveConclusion(
+    attemptId: number,
+    request: SaveConclusionRequest,
+  ): Observable<SaveConclusionResponse> {
+    const headers =
+      this.getAuthHeaders();
+
+    if (!headers) {
+      return throwError(
+        () =>
+          new Error(
+            'Authentication is required to save the final technical conclusion.',
+          ),
+      );
+    }
+
+    return this.http.put<SaveConclusionResponse>(
+      `${this.attemptsUrl}/${attemptId}/conclusion`,
       request,
       {
         headers,
