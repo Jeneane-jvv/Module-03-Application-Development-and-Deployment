@@ -11,6 +11,10 @@ import {
 } from '@angular/router';
 
 import {
+  MissionMentor,
+} from '../../components/mission-mentor/mission-mentor';
+
+import {
   Experience,
   VisitorEventType,
   VisitorProfile,
@@ -34,6 +38,7 @@ interface GuidedTourStep {
 
 @Component({
   imports: [
+    MissionMentor,
     RouterLink,
   ],
   selector: 'app-public-experience',

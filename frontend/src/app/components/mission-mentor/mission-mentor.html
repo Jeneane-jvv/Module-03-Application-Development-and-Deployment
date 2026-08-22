@@ -1,0 +1,136 @@
+<section
+  class="mission-mentor"
+  aria-labelledby="mission-mentor-title"
+>
+  <div class="mission-mentor__header">
+    <div>
+      <p class="mission-mentor__eyebrow">
+        MISSION SUPPORT / MISSION MENTOR
+      </p>
+
+      <h2 id="mission-mentor-title">
+        Think through the next engineering decision.
+      </h2>
+
+      <p class="mission-mentor__introduction">
+        {{ introduction() }}
+      </p>
+    </div>
+
+    <div
+      class="mission-mentor__boundary"
+      aria-label="Mission Mentor boundary"
+    >
+      <span>
+        GUIDES REASONING
+      </span>
+
+      <strong>
+        DOES NOT SOLVE
+      </strong>
+    </div>
+  </div>
+
+  <div class="mission-mentor__prompt-grid">
+    @for (
+      prompt of prompts();
+      track prompt.id
+    ) {
+      <button
+        class="mentor-prompt"
+        type="button"
+        [class.mentor-prompt--active]="
+          selectedPromptId() === prompt.id
+        "
+        (click)="requestGuidance(prompt)"
+      >
+        <span class="mentor-prompt__number">
+          {{ prompt.number }}
+        </span>
+
+        <span class="mentor-prompt__content">
+          <small>
+            {{ prompt.label }}
+          </small>
+
+          <strong>
+            {{ prompt.title }}
+          </strong>
+
+          <span>
+            {{ prompt.description }}
+          </span>
+        </span>
+      </button>
+    }
+  </div>
+
+  @if (guidance(); as currentGuidance) {
+    <div
+      class="mission-mentor__response"
+      aria-live="polite"
+    >
+      <div class="mission-mentor__response-heading">
+        <div>
+          <p>
+            MENTOR GUIDANCE
+          </p>
+
+          <h3>
+            {{ currentGuidance.title }}
+          </h3>
+        </div>
+
+        <button
+          class="mission-mentor__clear"
+          type="button"
+          (click)="clearGuidance()"
+        >
+          Clear Guidance
+        </button>
+      </div>
+
+      <p class="mission-mentor__message">
+        {{ currentGuidance.message }}
+      </p>
+
+      <div class="mission-mentor__questions">
+        <p>
+          QUESTIONS TO CONSIDER
+        </p>
+
+        <ul>
+          @for (
+            question of currentGuidance.questions;
+            track question
+          ) {
+            <li>
+              {{ question }}
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="mission-mentor__guardrail">
+        <span>
+          MENTOR BOUNDARY
+        </span>
+
+        <p>
+          {{ currentGuidance.boundary }}
+        </p>
+      </div>
+    </div>
+  } @else {
+    <div class="mission-mentor__idle">
+      <p>
+        Choose one reasoning prompt above.
+      </p>
+
+      <span>
+        Mission Mentor will return a bounded investigation nudge,
+        not a final technical answer.
+      </span>
+    </div>
+  }
+</section>

@@ -382,6 +382,12 @@
         </div>
       </section>
     }
+
+    @if (profile.visitorRole !== 'learner') {
+      <app-mission-mentor
+        [visitorRole]="profile.visitorRole"
+      />
+    }
   } @else {
     <section class="missing-profile">
       <p class="missing-profile__eyebrow">
