@@ -110,15 +110,7 @@
                   )
                 "
               >
-                @if (
-                  isLoadingDetail() &&
-                  selectedInvestigation()?.attempt.attemptId ===
-                    investigation.attemptId
-                ) {
-                  Opening Investigation...
-                } @else {
-                  Open Investigation
-                }
+                Open Investigation
               </button>
             </article>
           }
@@ -450,6 +442,435 @@
             </p>
           </article>
         </div>
+      </section>
+
+      <section
+        class="reviewer-detail-block reviewer-assessment"
+        aria-labelledby="reviewer-assessment-title"
+      >
+        <p class="reviewer-detail-block__label">
+          03 / REVIEWER ASSESSMENT
+        </p>
+
+        <h3 id="reviewer-assessment-title">
+          Reviewer Feedback
+        </h3>
+
+        <p>
+          Evaluate the learner's investigation across the three
+          assessment areas and provide final written feedback.
+        </p>
+
+        @if (review.attempt.status === 'reviewed') {
+          <div class="reviewer-assessment__completed">
+            <p class="reviewer-assessment__completed-label">
+              REVIEW COMPLETE
+            </p>
+
+            <h4>
+              This investigation has already been reviewed.
+            </h4>
+
+            @if (review.attempt.reviewedAt) {
+              <p>
+                Reviewed {{ review.attempt.reviewedAt }}
+              </p>
+            }
+          </div>
+        } @else {
+          <div class="reviewer-assessment__group">
+            <div class="reviewer-assessment__heading">
+              <p class="reviewer-assessment__number">
+                01
+              </p>
+
+              <div>
+                <h4>
+                  Reasoning Quality
+                </h4>
+
+                <p>
+                  Assess how clearly and logically the learner
+                  investigated the incident and connected findings
+                  to the final conclusion.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="reviewer-rating-options"
+              role="group"
+              aria-label="Reasoning quality rating"
+            >
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  reasoningQuality() === 'strong'
+                "
+                [attr.aria-pressed]="
+                  reasoningQuality() === 'strong'
+                "
+                (click)="setReasoningQuality('strong')"
+              >
+                <span>Strong</span>
+                <small>
+                  Clear, logical and well supported
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  reasoningQuality() === 'developing'
+                "
+                [attr.aria-pressed]="
+                  reasoningQuality() === 'developing'
+                "
+                (click)="setReasoningQuality('developing')"
+              >
+                <span>Developing</span>
+                <small>
+                  Sound direction with room to improve
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  reasoningQuality() === 'needs_revision'
+                "
+                [attr.aria-pressed]="
+                  reasoningQuality() === 'needs_revision'
+                "
+                (click)="
+                  setReasoningQuality(
+                    'needs_revision'
+                  )
+                "
+              >
+                <span>Needs Revision</span>
+                <small>
+                  Important reasoning gaps remain
+                </small>
+              </button>
+            </div>
+          </div>
+
+          <div class="reviewer-assessment__group">
+            <div class="reviewer-assessment__heading">
+              <p class="reviewer-assessment__number">
+                02
+              </p>
+
+              <div>
+                <h4>
+                  Evidence Usage
+                </h4>
+
+                <p>
+                  Assess whether the learner used the available
+                  technical evidence appropriately to support or
+                  eliminate competing causes.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="reviewer-rating-options"
+              role="group"
+              aria-label="Evidence usage rating"
+            >
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  evidenceUsage() === 'strong'
+                "
+                [attr.aria-pressed]="
+                  evidenceUsage() === 'strong'
+                "
+                (click)="setEvidenceUsage('strong')"
+              >
+                <span>Strong</span>
+                <small>
+                  Evidence is used accurately and effectively
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  evidenceUsage() === 'developing'
+                "
+                [attr.aria-pressed]="
+                  evidenceUsage() === 'developing'
+                "
+                (click)="setEvidenceUsage('developing')"
+              >
+                <span>Developing</span>
+                <small>
+                  Evidence use is generally sound
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  evidenceUsage() === 'needs_revision'
+                "
+                [attr.aria-pressed]="
+                  evidenceUsage() === 'needs_revision'
+                "
+                (click)="
+                  setEvidenceUsage(
+                    'needs_revision'
+                  )
+                "
+              >
+                <span>Needs Revision</span>
+                <small>
+                  Evidence interpretation needs improvement
+                </small>
+              </button>
+            </div>
+          </div>
+
+          <div class="reviewer-assessment__group">
+            <div class="reviewer-assessment__heading">
+              <p class="reviewer-assessment__number">
+                03
+              </p>
+
+              <div>
+                <h4>
+                  Technical Communication
+                </h4>
+
+                <p>
+                  Assess whether observations, reasoning and the
+                  final recommendation are communicated clearly
+                  and professionally.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="reviewer-rating-options"
+              role="group"
+              aria-label="Technical communication rating"
+            >
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  technicalCommunication() === 'strong'
+                "
+                [attr.aria-pressed]="
+                  technicalCommunication() === 'strong'
+                "
+                (click)="
+                  setTechnicalCommunication(
+                    'strong'
+                  )
+                "
+              >
+                <span>Strong</span>
+                <small>
+                  Clear and professional technical communication
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  technicalCommunication() === 'developing'
+                "
+                [attr.aria-pressed]="
+                  technicalCommunication() === 'developing'
+                "
+                (click)="
+                  setTechnicalCommunication(
+                    'developing'
+                  )
+                "
+              >
+                <span>Developing</span>
+                <small>
+                  Understandable with some refinement needed
+                </small>
+              </button>
+
+              <button
+                type="button"
+                class="reviewer-rating-option"
+                [class.reviewer-rating-option--selected]="
+                  technicalCommunication() === 'needs_revision'
+                "
+                [attr.aria-pressed]="
+                  technicalCommunication() === 'needs_revision'
+                "
+                (click)="
+                  setTechnicalCommunication(
+                    'needs_revision'
+                  )
+                "
+              >
+                <span>Needs Revision</span>
+                <small>
+                  Communication needs significant clarification
+                </small>
+              </button>
+            </div>
+          </div>
+
+          <div class="reviewer-assessment__group">
+            <div class="reviewer-assessment__heading">
+              <p class="reviewer-assessment__number">
+                04
+              </p>
+
+              <div>
+                <h4>
+                  Written Feedback
+                </h4>
+
+                <p>
+                  Give the learner constructive technical feedback
+                  on what was done well and what should be improved.
+                </p>
+              </div>
+            </div>
+
+            <label
+              class="reviewer-feedback-field"
+              for="reviewer-feedback"
+            >
+              <span>
+                Reviewer Feedback
+              </span>
+
+              <textarea
+                id="reviewer-feedback"
+                rows="8"
+                maxlength="4000"
+                placeholder="Record clear, constructive reviewer feedback..."
+                [value]="feedbackText()"
+                (input)="updateFeedbackText($event)"
+              ></textarea>
+
+              <small>
+                {{ feedbackText().length }} / 4000 characters
+              </small>
+            </label>
+          </div>
+
+          <div class="reviewer-review-summary">
+            <p class="reviewer-review-summary__label">
+              REVIEW READINESS
+            </p>
+
+            <div class="reviewer-review-summary__items">
+              <span>
+                Reasoning:
+                {{ reasoningQuality() ?? 'not selected' }}
+              </span>
+
+              <span>
+                Evidence:
+                {{ evidenceUsage() ?? 'not selected' }}
+              </span>
+
+              <span>
+                Communication:
+                {{
+                  technicalCommunication() ??
+                    'not selected'
+                }}
+              </span>
+            </div>
+
+            @if (reviewFormComplete()) {
+              <p class="reviewer-review-summary__ready">
+                Reviewer assessment complete and ready for
+                final confirmation.
+              </p>
+            } @else {
+              <p>
+                Complete all assessment areas and written
+                feedback before submission.
+              </p>
+            }
+          </div>
+
+          <label class="reviewer-confirmation">
+            <input
+              type="checkbox"
+              [checked]="reviewConfirmed()"
+              (change)="
+                updateReviewConfirmation(
+                  $event
+                )
+              "
+            />
+
+            <span>
+              I confirm that this assessment is final and that
+              submitting it will mark the learner investigation
+              as reviewed.
+            </span>
+          </label>
+
+          @if (reviewError()) {
+            <div
+              class="reviewer-dashboard__status reviewer-dashboard__status--error"
+              role="alert"
+            >
+              <p>
+                {{ reviewError() }}
+              </p>
+            </div>
+          }
+
+          @if (reviewSuccess()) {
+            <div
+              class="reviewer-dashboard__status reviewer-dashboard__status--success"
+              role="status"
+            >
+              <p>
+                {{ reviewSuccess() }}
+              </p>
+            </div>
+          }
+
+          <div class="reviewer-assessment__actions">
+            <button
+              type="button"
+              class="reviewer-dashboard__primary-action"
+              [disabled]="!reviewCanSubmit()"
+              (click)="submitReview()"
+            >
+              @if (isSubmittingReview()) {
+                Submitting Review...
+              } @else {
+                Submit Final Review
+              }
+            </button>
+
+            <p>
+              This action records reviewer feedback and changes
+              the investigation status from
+              <strong>submitted</strong>
+              to
+              <strong>reviewed</strong>.
+            </p>
+          </div>
+        }
       </section>
     </section>
   }

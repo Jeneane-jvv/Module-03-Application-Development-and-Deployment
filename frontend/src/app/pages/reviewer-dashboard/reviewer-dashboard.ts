@@ -11,6 +11,7 @@ import {
   Reviewer,
   ReviewerInvestigationDetailResponse,
   ReviewerInvestigationSummary,
+  ReviewerRating,
 } from '../../services/reviewer';
 
 @Component({
@@ -50,6 +51,40 @@ export class ReviewerDashboard implements OnInit {
       null,
     );
 
+  readonly reasoningQuality =
+    signal<ReviewerRating | null>(
+      null,
+    );
+
+  readonly evidenceUsage =
+    signal<ReviewerRating | null>(
+      null,
+    );
+
+  readonly technicalCommunication =
+    signal<ReviewerRating | null>(
+      null,
+    );
+
+  readonly feedbackText =
+    signal('');
+
+  readonly reviewConfirmed =
+    signal(false);
+
+  readonly isSubmittingReview =
+    signal(false);
+
+  readonly reviewError =
+    signal<string | null>(
+      null,
+    );
+
+  readonly reviewSuccess =
+    signal<string | null>(
+      null,
+    );
+
   ngOnInit(): void {
     this.loadInvestigations();
   }
@@ -63,6 +98,8 @@ export class ReviewerDashboard implements OnInit {
 
     this.isLoadingDetail.set(true);
     this.detailError.set(null);
+    this.reviewError.set(null);
+    this.reviewSuccess.set(null);
 
     this.reviewerService
       .getInvestigation(attemptId)
@@ -71,6 +108,8 @@ export class ReviewerDashboard implements OnInit {
           this.selectedInvestigation.set(
             response,
           );
+
+          this.resetReviewForm();
 
           this.isLoadingDetail.set(false);
 
@@ -133,6 +172,298 @@ export class ReviewerDashboard implements OnInit {
   closeInvestigation(): void {
     this.selectedInvestigation.set(null);
     this.detailError.set(null);
+    this.reviewError.set(null);
+    this.reviewSuccess.set(null);
+
+    this.resetReviewForm();
+  }
+
+  setReasoningQuality(
+    rating: ReviewerRating,
+  ): void {
+    if (this.reviewLocked()) {
+      return;
+    }
+
+    this.reasoningQuality.set(
+      rating,
+    );
+
+    this.reviewError.set(null);
+  }
+
+  setEvidenceUsage(
+    rating: ReviewerRating,
+  ): void {
+    if (this.reviewLocked()) {
+      return;
+    }
+
+    this.evidenceUsage.set(
+      rating,
+    );
+
+    this.reviewError.set(null);
+  }
+
+  setTechnicalCommunication(
+    rating: ReviewerRating,
+  ): void {
+    if (this.reviewLocked()) {
+      return;
+    }
+
+    this.technicalCommunication.set(
+      rating,
+    );
+
+    this.reviewError.set(null);
+  }
+
+  updateFeedbackText(
+    event: Event,
+  ): void {
+    if (this.reviewLocked()) {
+      return;
+    }
+
+    const textarea =
+      event.target as HTMLTextAreaElement;
+
+    this.feedbackText.set(
+      textarea.value,
+    );
+
+    this.reviewError.set(null);
+  }
+
+  updateReviewConfirmation(
+    event: Event,
+  ): void {
+    if (this.reviewLocked()) {
+      return;
+    }
+
+    const checkbox =
+      event.target as HTMLInputElement;
+
+    this.reviewConfirmed.set(
+      checkbox.checked,
+    );
+
+    this.reviewError.set(null);
+  }
+
+  reviewFormComplete(): boolean {
+    return Boolean(
+      this.reasoningQuality() &&
+      this.evidenceUsage() &&
+      this.technicalCommunication() &&
+      this.feedbackText().trim(),
+    );
+  }
+
+  reviewCanSubmit(): boolean {
+    return (
+      this.reviewFormComplete() &&
+      this.reviewConfirmed() &&
+      !this.isSubmittingReview() &&
+      !this.reviewLocked()
+    );
+  }
+
+  reviewLocked(): boolean {
+    return (
+      this.selectedInvestigation()
+        ?.attempt.status === 'reviewed'
+    );
+  }
+
+  submitReview(): void {
+    const review =
+      this.selectedInvestigation();
+
+    if (!review) {
+      this.reviewError.set(
+        'No investigation is currently open for review.',
+      );
+
+      return;
+    }
+
+    if (review.attempt.status !== 'submitted') {
+      this.reviewError.set(
+        'Only submitted investigations can be reviewed.',
+      );
+
+      return;
+    }
+
+    const reasoningQuality =
+      this.reasoningQuality();
+
+    const evidenceUsage =
+      this.evidenceUsage();
+
+    const technicalCommunication =
+      this.technicalCommunication();
+
+    const feedbackText =
+      this.feedbackText().trim();
+
+    if (
+      !reasoningQuality ||
+      !evidenceUsage ||
+      !technicalCommunication ||
+      !feedbackText
+    ) {
+      this.reviewError.set(
+        'Complete all three assessment categories and provide reviewer feedback before submitting.',
+      );
+
+      return;
+    }
+
+    if (!this.reviewConfirmed()) {
+      this.reviewError.set(
+        'Confirm that the reviewer assessment is final before submitting.',
+      );
+
+      return;
+    }
+
+    if (this.isSubmittingReview()) {
+      return;
+    }
+
+    this.isSubmittingReview.set(true);
+    this.reviewError.set(null);
+    this.reviewSuccess.set(null);
+
+    this.reviewerService
+      .submitReview(
+        review.attempt.attemptId,
+        {
+          reasoningQuality,
+          evidenceUsage,
+          technicalCommunication,
+          feedbackText,
+        },
+      )
+      .subscribe({
+        next: (response) => {
+          this.isSubmittingReview.set(
+            false,
+          );
+
+          this.reviewSuccess.set(
+            response.message,
+          );
+
+          this.selectedInvestigation.update(
+            (current) => {
+              if (!current) {
+                return current;
+              }
+
+              return {
+                ...current,
+
+                attempt: {
+                  ...current.attempt,
+
+                  status:
+                    response.attempt.status,
+
+                  reviewedAt:
+                    response.attempt.reviewedAt,
+                },
+              };
+            },
+          );
+
+          this.investigations.update(
+            (current) =>
+              current.filter(
+                (investigation) =>
+                  investigation.attemptId !==
+                  response.attempt.attemptId,
+              ),
+          );
+
+          this.reviewConfirmed.set(
+            false,
+          );
+
+          console.log({
+            reviewerAssessmentSubmitted:
+              true,
+
+            attemptId:
+              response.attempt.attemptId,
+
+            scenarioCode:
+              response.attempt.scenarioCode,
+
+            status:
+              response.attempt.status,
+
+            feedbackId:
+              response.feedback.feedbackId,
+          });
+        },
+
+        error: (error) => {
+          this.isSubmittingReview.set(
+            false,
+          );
+
+          this.reviewError.set(
+            error.error?.message ??
+              'Reviewer feedback could not be submitted.',
+          );
+
+          console.error({
+            reviewerAssessmentSubmitted:
+              false,
+
+            attemptId:
+              review.attempt.attemptId,
+
+            status:
+              error.status,
+
+            error:
+              error.error?.error,
+          });
+        },
+      });
+  }
+
+  private resetReviewForm(): void {
+    this.reasoningQuality.set(
+      null,
+    );
+
+    this.evidenceUsage.set(
+      null,
+    );
+
+    this.technicalCommunication.set(
+      null,
+    );
+
+    this.feedbackText.set('');
+
+    this.reviewConfirmed.set(
+      false,
+    );
+
+    this.isSubmittingReview.set(
+      false,
+    );
+
+    this.reviewError.set(null);
   }
 
   private loadInvestigations(): void {
