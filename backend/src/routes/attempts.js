@@ -11,6 +11,10 @@ const router = express.Router();
 // ============================================================
 // POST /api/attempts
 // Start or resume a learner investigation.
+//
+// Existing investigations are restored before a new attempt is
+// created. This prevents submitted or reviewed missions from
+// accidentally starting a second empty investigation.
 // ============================================================
 
 router.post('/', authenticate, async (req, res) => {
@@ -38,6 +42,11 @@ router.post('/', authenticate, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // --------------------------------------------------------
+    // Confirm that the requested mission exists and is
+    // published.
+    // --------------------------------------------------------
+
     const scenarioResult = await client.query(
       `
         SELECT
@@ -52,7 +61,9 @@ router.post('/', authenticate, async (req, res) => {
 
         LIMIT 1;
       `,
-      [scenarioId],
+      [
+        scenarioId,
+      ],
     );
 
     if (scenarioResult.rowCount === 0) {
@@ -60,42 +71,136 @@ router.post('/', authenticate, async (req, res) => {
 
       return res.status(404).json({
         error: 'mission_not_found',
-        message: 'The requested mission could not be found.',
+        message:
+          'The requested mission could not be found.',
       });
     }
 
-    const attemptResult = await client.query(
-      `
-        INSERT INTO attempts (
-          learner_id,
-          scenario_id
-        )
-        VALUES ($1, $2)
+    // --------------------------------------------------------
+    // Restore an existing learner attempt before attempting
+    // to create a new one.
+    //
+    // Current mission lifecycle states are all treated as an
+    // existing investigation:
+    //   in_progress -> resume learner work
+    //   submitted   -> restore the locked submission
+    //   reviewed    -> restore the completed investigation
+    // --------------------------------------------------------
 
-        ON CONFLICT (learner_id, scenario_id)
-          WHERE status = 'in_progress'
+    const existingAttemptResult =
+      await client.query(
+        `
+          SELECT
+            attempt_id::int AS "attemptId",
+            learner_id::int AS "learnerId",
+            scenario_id::int AS "scenarioId",
+            status,
+            started_at AS "startedAt",
+            submitted_at AS "submittedAt",
+            reviewed_at AS "reviewedAt"
 
-        DO NOTHING
+          FROM attempts
 
-        RETURNING
-          attempt_id::int AS "attemptId",
-          learner_id::int AS "learnerId",
-          scenario_id::int AS "scenarioId",
-          status,
-          started_at AS "startedAt";
-      `,
-      [
-        req.user.userId,
-        scenarioId,
-      ],
-    );
+          WHERE learner_id = $1
+            AND scenario_id = $2
+            AND status IN (
+              'in_progress',
+              'submitted',
+              'reviewed'
+            )
+
+          ORDER BY
+            CASE status
+              WHEN 'in_progress' THEN 1
+              WHEN 'submitted' THEN 2
+              WHEN 'reviewed' THEN 3
+              ELSE 4
+            END,
+            started_at DESC,
+            attempt_id DESC
+
+          LIMIT 1;
+        `,
+        [
+          req.user.userId,
+          scenarioId,
+        ],
+      );
+
+    if (
+      existingAttemptResult.rowCount === 1
+    ) {
+      const attempt =
+        existingAttemptResult.rows[0];
+
+      await client.query('COMMIT');
+
+      return res.status(200).json({
+        created: false,
+        attempt,
+      });
+    }
+
+    // --------------------------------------------------------
+    // No existing attempt exists for this learner and mission.
+    // Create a new in-progress investigation.
+    //
+    // The partial unique constraint protecting in_progress
+    // attempts remains our final concurrency safeguard.
+    // --------------------------------------------------------
+
+    const attemptResult =
+      await client.query(
+        `
+          INSERT INTO attempts (
+            learner_id,
+            scenario_id
+          )
+
+          VALUES (
+            $1,
+            $2
+          )
+
+          ON CONFLICT (
+            learner_id,
+            scenario_id
+          )
+            WHERE status = 'in_progress'
+
+          DO NOTHING
+
+          RETURNING
+            attempt_id::int AS "attemptId",
+            learner_id::int AS "learnerId",
+            scenario_id::int AS "scenarioId",
+            status,
+            started_at AS "startedAt",
+            submitted_at AS "submittedAt",
+            reviewed_at AS "reviewedAt";
+        `,
+        [
+          req.user.userId,
+          scenarioId,
+        ],
+      );
 
     let attempt;
     let created = false;
 
-    if (attemptResult.rowCount === 1) {
-      attempt = attemptResult.rows[0];
+    if (
+      attemptResult.rowCount === 1
+    ) {
+      attempt =
+        attemptResult.rows[0];
+
       created = true;
+
+      // ------------------------------------------------------
+      // Audit only genuinely new investigations.
+      // Restoring an existing attempt must not create another
+      // MISSION_STARTED event.
+      // ------------------------------------------------------
 
       await client.query(
         `
@@ -108,6 +213,7 @@ router.post('/', authenticate, async (req, res) => {
             description,
             metadata
           )
+
           VALUES (
             $1,
             'MISSION_STARTED',
@@ -121,16 +227,26 @@ router.post('/', authenticate, async (req, res) => {
         [
           req.user.userId,
           attempt.attemptId,
+
           `Learner started mission ${scenarioResult.rows[0].scenarioCode}.`,
+
           JSON.stringify({
             scenarioId,
+
             scenarioCode:
               scenarioResult.rows[0].scenarioCode,
           }),
         ],
       );
     } else {
-      const existingAttemptResult =
+      // ------------------------------------------------------
+      // Another request may have created an in-progress
+      // attempt between our initial lookup and INSERT.
+      // Recover that attempt instead of returning an error or
+      // creating a duplicate.
+      // ------------------------------------------------------
+
+      const concurrentAttemptResult =
         await client.query(
           `
             SELECT
@@ -138,13 +254,19 @@ router.post('/', authenticate, async (req, res) => {
               learner_id::int AS "learnerId",
               scenario_id::int AS "scenarioId",
               status,
-              started_at AS "startedAt"
+              started_at AS "startedAt",
+              submitted_at AS "submittedAt",
+              reviewed_at AS "reviewedAt"
 
             FROM attempts
 
             WHERE learner_id = $1
               AND scenario_id = $2
               AND status = 'in_progress'
+
+            ORDER BY
+              started_at DESC,
+              attempt_id DESC
 
             LIMIT 1;
           `,
@@ -154,8 +276,16 @@ router.post('/', authenticate, async (req, res) => {
           ],
         );
 
+      if (
+        concurrentAttemptResult.rowCount === 0
+      ) {
+        throw new Error(
+          'Investigation attempt could not be created or restored.',
+        );
+      }
+
       attempt =
-        existingAttemptResult.rows[0];
+        concurrentAttemptResult.rows[0];
     }
 
     await client.query('COMMIT');
