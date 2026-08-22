@@ -156,7 +156,7 @@
             class="experience-action"
             routerLink="/login"
           >
-            {{ primaryActionLabel(profile.visitorRole) }}
+            Continue to Secure Login
           </a>
         } @else {
           <h2>
@@ -166,13 +166,16 @@
           <p>
             Recruiters, assessors, and guests can understand the project
             without receiving learner credentials or entering the
-            reviewer workspace. The guided public experience is built
-            on this route next.
+            reviewer workspace.
           </p>
 
-          <div class="experience-boundary__status">
-            {{ primaryActionLabel(profile.visitorRole) }}
-          </div>
+          <button
+            class="experience-action"
+            type="button"
+            (click)="startGuidedTour(profile.visitorRole)"
+          >
+            {{ guidedTourLabel(profile.visitorRole) }}
+          </button>
         }
 
         <button
@@ -212,6 +215,173 @@
         </div>
       </aside>
     </section>
+
+    @if (
+      profile.visitorRole !== 'learner' &&
+      tourOpen()
+    ) {
+      <section
+        class="guided-tour"
+        aria-labelledby="guided-tour-title"
+      >
+        <div class="guided-tour__shell">
+          <aside class="guided-tour__rail">
+            <div>
+              <p class="guided-tour__eyebrow">
+                GUIDED PUBLIC EXPERIENCE
+              </p>
+
+              <h2 id="guided-tour-title">
+                {{ roleLabel(profile.visitorRole) }}
+              </h2>
+            </div>
+
+            <ol class="guided-tour__progress">
+              @for (
+                step of guidedTourSteps(profile.visitorRole);
+                track step.number;
+                let index = $index
+              ) {
+                <li
+                  [class.guided-tour__progress-item--active]="
+                    !tourCompleted() &&
+                    index === tourStepIndex()
+                  "
+                  [class.guided-tour__progress-item--complete]="
+                    tourCompleted() ||
+                    index < tourStepIndex()
+                  "
+                >
+                  <span>
+                    {{ step.number }}
+                  </span>
+
+                  <strong>
+                    {{ step.eyebrow }}
+                  </strong>
+                </li>
+              }
+            </ol>
+          </aside>
+
+          <div
+            class="guided-tour__content"
+            aria-live="polite"
+          >
+            @if (tourCompleted()) {
+              <div class="guided-tour__complete">
+                <p class="guided-tour__eyebrow">
+                  TOUR COMPLETE
+                </p>
+
+                <h3>
+                  {{ tourCompletionTitle(profile.visitorRole) }}
+                </h3>
+
+                <p>
+                  The tour keeps public exploration separate from
+                  operational learner and reviewer access while still
+                  making the product architecture and evidence visible.
+                </p>
+
+                <div class="guided-tour__actions">
+                  <button
+                    class="experience-action"
+                    type="button"
+                    (click)="restartGuidedTour(profile.visitorRole)"
+                  >
+                    Restart Tour
+                  </button>
+
+                  <button
+                    class="tour-secondary"
+                    type="button"
+                    (click)="closeGuidedTour()"
+                  >
+                    Close Tour
+                  </button>
+                </div>
+              </div>
+            } @else if (
+              currentTourStep(profile.visitorRole);
+              as step
+            ) {
+              <div class="guided-tour__step">
+                <div class="guided-tour__step-heading">
+                  <span class="guided-tour__step-number">
+                    {{ step.number }}
+                  </span>
+
+                  <p>
+                    {{ step.eyebrow }}
+                  </p>
+                </div>
+
+                <h3>
+                  {{ step.title }}
+                </h3>
+
+                <p class="guided-tour__description">
+                  {{ step.description }}
+                </p>
+
+                <div class="guided-tour__evidence">
+                  <p>
+                    WHAT THIS STEP SURFACES
+                  </p>
+
+                  <ul>
+                    @for (
+                      item of step.evidence;
+                      track item
+                    ) {
+                      <li>
+                        {{ item }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="guided-tour__footer">
+                  <p>
+                    Step
+                    {{ tourStepIndex() + 1 }}
+                    of
+                    {{ guidedTourSteps(profile.visitorRole).length }}
+                  </p>
+
+                  <div class="guided-tour__actions">
+                    <button
+                      class="tour-secondary"
+                      type="button"
+                      [disabled]="tourStepIndex() === 0"
+                      (click)="previousTourStep()"
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      class="experience-action"
+                      type="button"
+                      (click)="nextTourStep(profile.visitorRole)"
+                    >
+                      @if (
+                        tourStepIndex() ===
+                        guidedTourSteps(profile.visitorRole).length - 1
+                      ) {
+                        Complete Tour
+                      } @else {
+                        Next Step
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    }
   } @else {
     <section class="missing-profile">
       <p class="missing-profile__eyebrow">
