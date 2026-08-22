@@ -625,6 +625,50 @@ router.get(
         assessedCauseCount >=
           totalCauseCount;
 
+      // ------------------------------------------------------
+      // Restore reviewer feedback after the investigation has
+      // been reviewed. The learner only reaches this data
+      // through their own attempt, which is already protected
+      // by learner ownership above.
+      // ------------------------------------------------------
+
+      const reviewerFeedbackResult =
+        await pool.query(
+          `
+            SELECT
+              feedback_id::int
+                AS "feedbackId",
+
+              reasoning_quality
+                AS "reasoningQuality",
+
+              evidence_usage
+                AS "evidenceUsage",
+
+              technical_communication
+                AS "technicalCommunication",
+
+              feedback_text
+                AS "feedbackText",
+
+              created_at
+                AS "createdAt"
+
+            FROM feedback
+
+            WHERE attempt_id = $1
+
+            LIMIT 1;
+          `,
+          [
+            attemptId,
+          ],
+        );
+
+      const reviewerFeedback =
+        reviewerFeedbackResult.rows[0] ??
+        null;
+
       return res.status(200).json({
         attempt,
 
@@ -658,6 +702,8 @@ router.get(
 
         causeAssessments:
           causeAssessmentsResult.rows,
+
+        reviewerFeedback,
       });
     } catch (error) {
       console.error(
