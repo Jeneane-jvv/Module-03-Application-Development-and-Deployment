@@ -73,6 +73,12 @@ export interface AttemptProgress {
   completedSteps: number;
 }
 
+export interface EvidenceProgress {
+  availableEvidenceCount: number;
+  totalEvidenceCount: number;
+  allEvidenceUnlocked: boolean;
+}
+
 export interface CauseAssessment {
   causeAssessmentId: number;
   attemptId: number;
@@ -88,6 +94,7 @@ export interface CauseAssessment {
 export interface AttemptStateResponse {
   attempt: PersistedAttempt;
   progress: AttemptProgress;
+  evidenceProgress: EvidenceProgress;
   steps: InvestigationStep[];
   availableEvidence: InvestigationEvidence[];
   causeAssessments: CauseAssessment[];
@@ -103,6 +110,7 @@ export interface RecordStepRequest {
 export interface RecordStepResponse {
   step: InvestigationStep;
   progress: AttemptProgress;
+  evidenceProgress: EvidenceProgress;
   availableEvidence: InvestigationEvidence[];
   newlyUnlockedEvidence: InvestigationEvidence[];
 }

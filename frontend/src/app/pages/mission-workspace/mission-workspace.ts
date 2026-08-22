@@ -20,6 +20,7 @@ import {
   Attempts,
   CauseAssessment,
   CauseAssessmentStatus,
+  EvidenceProgress,
   InvestigationEvidence,
   InvestigationStep,
   RecordStepResponse,
@@ -62,6 +63,13 @@ export class MissionWorkspace implements OnInit {
 
   readonly completedSteps =
     signal(0);
+
+  readonly evidenceProgress =
+    signal<EvidenceProgress>({
+      availableEvidenceCount: 0,
+      totalEvidenceCount: 0,
+      allEvidenceUnlocked: false,
+    });
 
   readonly newlyUnlockedEvidence =
     signal<InvestigationEvidence[]>([]);
@@ -275,6 +283,17 @@ export class MissionWorkspace implements OnInit {
       !attempt ||
       this.isSavingStep()
     ) {
+      return;
+    }
+
+    if (
+      this.evidenceProgress()
+        .allEvidenceUnlocked
+    ) {
+      this.stepError.set(
+        'All mission evidence is available. Continue with cause assessment.',
+      );
+
       return;
     }
 
@@ -602,6 +621,9 @@ export class MissionWorkspace implements OnInit {
             completedSteps:
               state.progress.completedSteps,
 
+            evidenceProgress:
+              state.evidenceProgress,
+
             restoredSteps:
               state.steps.length,
 
@@ -652,6 +674,10 @@ export class MissionWorkspace implements OnInit {
       state.progress.completedSteps,
     );
 
+    this.evidenceProgress.set(
+      state.evidenceProgress,
+    );
+
     this.investigationSteps.set(
       state.steps,
     );
@@ -687,6 +713,10 @@ export class MissionWorkspace implements OnInit {
 
     this.completedSteps.set(
       response.progress.completedSteps,
+    );
+
+    this.evidenceProgress.set(
+      response.evidenceProgress,
     );
 
     this.newlyUnlockedEvidence.set(

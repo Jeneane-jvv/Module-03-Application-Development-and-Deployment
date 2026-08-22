@@ -69,7 +69,7 @@
 
                 <p class="attempt-status__value">
                   Attempt #{{ attempt.attemptId }}
-                  · {{ attempt.status }}
+                  Â· {{ attempt.status }}
                 </p>
               </div>
             </div>
@@ -224,11 +224,18 @@
         </h2>
 
         @if (currentAttempt()) {
-          <p>
-            Record what the evidence shows,
-            what you should inspect next,
-            and why that next action makes sense.
-          </p>
+          @if (evidenceProgress().allEvidenceUnlocked) {
+            <p>
+              Review your completed reasoning trail and use the
+              full evidence set to evaluate the competing causes below.
+            </p>
+          } @else {
+            <p>
+              Record what the evidence shows,
+              what you should inspect next,
+              and why that next action makes sense.
+            </p>
+          }
         }
       </div>
 
@@ -281,158 +288,189 @@
           </div>
         }
 
-        <form
-          class="reasoning-form"
-          [formGroup]="stepForm"
-          (ngSubmit)="submitInvestigationStep()"
-          novalidate
-        >
-          <div class="reasoning-form__header">
-            <p class="reasoning-form__step">
-              NEXT STEP
-              {{ completedSteps() + 1 }}
+        @if (
+          evidenceProgress().allEvidenceUnlocked
+        ) {
+          <div
+            class="investigation-complete"
+            role="status"
+            aria-live="polite"
+          >
+            <p class="investigation-complete__label">
+              EVIDENCE INVESTIGATION COMPLETE
             </p>
 
             <h3>
-              Record Investigation Step
+              All mission evidence is now available
             </h3>
-          </div>
 
-          <div class="reasoning-form__field">
-            <label for="evidenceId">
-              Evidence reviewed
-            </label>
-
-            <select
-              id="evidenceId"
-              formControlName="evidenceId"
-            >
-              <option [ngValue]="null">
-                Select available evidence
-              </option>
-
-              @for (
-                evidence of data.availableEvidence;
-                track evidence.evidenceId
-              ) {
-                <option
-                  [ngValue]="evidence.evidenceId"
-                >
-                  {{ evidence.evidenceCode }}
-                  — {{ evidence.title }}
-                </option>
-              }
-            </select>
-
-            @if (
-              stepForm.controls.evidenceId.touched &&
-              stepForm.controls.evidenceId.invalid
-            ) {
-              <p class="reasoning-form__error">
-                Select the evidence you are reasoning from.
-              </p>
-            }
-          </div>
-
-          <div class="reasoning-form__field">
-            <label for="observation">
-              What did you observe?
-            </label>
-
-            <textarea
-              id="observation"
-              rows="4"
-              formControlName="observation"
-              placeholder="Describe what the evidence actually shows."
-            ></textarea>
-
-            @if (
-              stepForm.controls.observation.touched &&
-              stepForm.controls.observation.invalid
-            ) {
-              <p class="reasoning-form__error">
-                An observation is required.
-              </p>
-            }
-          </div>
-
-          <div class="reasoning-form__field">
-            <label for="nextAction">
-              What should you check next?
-            </label>
-
-            <textarea
-              id="nextAction"
-              rows="3"
-              formControlName="nextAction"
-              placeholder="Describe the next technical action you would take."
-            ></textarea>
-
-            @if (
-              stepForm.controls.nextAction.touched &&
-              stepForm.controls.nextAction.invalid
-            ) {
-              <p class="reasoning-form__error">
-                A next action is required.
-              </p>
-            }
-          </div>
-
-          <div class="reasoning-form__field">
-            <label for="reasoning">
-              Why does that next action make sense?
-            </label>
-
-            <textarea
-              id="reasoning"
-              rows="5"
-              formControlName="reasoning"
-              placeholder="Explain how your next action follows from the available evidence."
-            ></textarea>
-
-            @if (
-              stepForm.controls.reasoning.touched &&
-              stepForm.controls.reasoning.invalid
-            ) {
-              <p class="reasoning-form__error">
-                Explain your reasoning before continuing.
-              </p>
-            }
-          </div>
-
-          @if (stepError()) {
-            <p
-              class="reasoning-form__message reasoning-form__message--error"
-              role="alert"
-            >
-              {{ stepError() }}
+            <p class="investigation-complete__progress">
+              {{ evidenceProgress().availableEvidenceCount }}
+              of
+              {{ evidenceProgress().totalEvidenceCount }}
+              mission artefacts available.
             </p>
-          }
 
-          @if (stepSuccess()) {
-            <p
-              class="reasoning-form__message reasoning-form__message--success"
-              role="status"
-            >
-              {{ stepSuccess() }}
+            <p>
+              You now have the complete evidence set.
+              Continue below to evaluate the competing
+              causes against what you have observed.
             </p>
-          }
-
-          <button
-            class="workspace__primary-action"
-            type="submit"
-            [disabled]="
-              stepForm.invalid ||
-              isSavingStep()
-            "
+          </div>
+        } @else {
+          <form
+            class="reasoning-form"
+            [formGroup]="stepForm"
+            (ngSubmit)="submitInvestigationStep()"
+            novalidate
           >
-            @if (isSavingStep()) {
-              Saving Investigation Step...
-            } @else {
-              Save Investigation Step
+            <div class="reasoning-form__header">
+              <p class="reasoning-form__step">
+                NEXT STEP
+                {{ completedSteps() + 1 }}
+              </p>
+
+              <h3>
+                Record Investigation Step
+              </h3>
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="evidenceId">
+                Evidence reviewed
+              </label>
+
+              <select
+                id="evidenceId"
+                formControlName="evidenceId"
+              >
+                <option [ngValue]="null">
+                  Select available evidence
+                </option>
+
+                @for (
+                  evidence of data.availableEvidence;
+                  track evidence.evidenceId
+                ) {
+                  <option
+                    [ngValue]="evidence.evidenceId"
+                  >
+                    {{ evidence.evidenceCode }}
+                    â€” {{ evidence.title }}
+                  </option>
+                }
+              </select>
+
+              @if (
+                stepForm.controls.evidenceId.touched &&
+                stepForm.controls.evidenceId.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  Select the evidence you are reasoning from.
+                </p>
+              }
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="observation">
+                What did you observe?
+              </label>
+
+              <textarea
+                id="observation"
+                rows="4"
+                formControlName="observation"
+                placeholder="Describe what the evidence actually shows."
+              ></textarea>
+
+              @if (
+                stepForm.controls.observation.touched &&
+                stepForm.controls.observation.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  An observation is required.
+                </p>
+              }
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="nextAction">
+                What should you check next?
+              </label>
+
+              <textarea
+                id="nextAction"
+                rows="3"
+                formControlName="nextAction"
+                placeholder="Describe the next technical action you would take."
+              ></textarea>
+
+              @if (
+                stepForm.controls.nextAction.touched &&
+                stepForm.controls.nextAction.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  A next action is required.
+                </p>
+              }
+            </div>
+
+            <div class="reasoning-form__field">
+              <label for="reasoning">
+                Why does that next action make sense?
+              </label>
+
+              <textarea
+                id="reasoning"
+                rows="5"
+                formControlName="reasoning"
+                placeholder="Explain how your next action follows from the available evidence."
+              ></textarea>
+
+              @if (
+                stepForm.controls.reasoning.touched &&
+                stepForm.controls.reasoning.invalid
+              ) {
+                <p class="reasoning-form__error">
+                  Explain your reasoning before continuing.
+                </p>
+              }
+            </div>
+
+            @if (stepError()) {
+              <p
+                class="reasoning-form__message reasoning-form__message--error"
+                role="alert"
+              >
+                {{ stepError() }}
+              </p>
             }
-          </button>
-        </form>
+
+            @if (stepSuccess()) {
+              <p
+                class="reasoning-form__message reasoning-form__message--success"
+                role="status"
+              >
+                {{ stepSuccess() }}
+              </p>
+            }
+
+            <button
+              class="workspace__primary-action"
+              type="submit"
+              [disabled]="
+                stepForm.invalid ||
+                isSavingStep()
+              "
+            >
+              @if (isSavingStep()) {
+                Saving Investigation Step...
+              } @else {
+                Save Investigation Step
+              }
+            </button>
+          </form>
+        }
       }
     </section>
 
