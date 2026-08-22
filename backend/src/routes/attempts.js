@@ -227,7 +227,10 @@ router.get(
               a.status,
               a.started_at AS "startedAt",
               a.submitted_at AS "submittedAt",
-              a.reviewed_at AS "reviewedAt"
+              a.reviewed_at AS "reviewedAt",
+              a.probable_root_cause AS "probableRootCause",
+              a.final_reasoning AS "finalReasoning",
+              a.recommended_action AS "recommendedAction"
 
             FROM attempts a
 
@@ -252,8 +255,41 @@ router.get(
         });
       }
 
-      const attempt =
+      const attemptRow =
         attemptResult.rows[0];
+
+      const attempt = {
+        attemptId:
+          attemptRow.attemptId,
+        learnerId:
+          attemptRow.learnerId,
+        scenarioId:
+          attemptRow.scenarioId,
+        status:
+          attemptRow.status,
+        startedAt:
+          attemptRow.startedAt,
+        submittedAt:
+          attemptRow.submittedAt,
+        reviewedAt:
+          attemptRow.reviewedAt,
+      };
+
+      const conclusion = {
+        probableRootCause:
+          attemptRow.probableRootCause,
+        finalReasoning:
+          attemptRow.finalReasoning,
+        recommendedAction:
+          attemptRow.recommendedAction,
+      };
+
+      const isConclusionComplete =
+        Boolean(
+          conclusion.probableRootCause?.trim() &&
+          conclusion.finalReasoning?.trim() &&
+          conclusion.recommendedAction?.trim(),
+        );
 
       // ------------------------------------------------------
       // Restore reasoning trail.
@@ -478,6 +514,12 @@ router.get(
           allCausesAssessed,
         },
 
+        conclusion,
+
+        conclusionProgress: {
+          isConclusionComplete,
+        },
+
         steps:
           stepsResult.rows,
 
@@ -606,11 +648,6 @@ router.post(
     try {
       await client.query('BEGIN');
 
-      // ------------------------------------------------------
-      // Lock the attempt so simultaneous requests cannot
-      // calculate the same step number.
-      // ------------------------------------------------------
-
       const attemptResult =
         await client.query(
           `
@@ -680,10 +717,6 @@ router.post(
         });
       }
 
-      // ------------------------------------------------------
-      // Determine the current persisted step count.
-      // ------------------------------------------------------
-
       const progressResult =
         await client.query(
           `
@@ -705,11 +738,6 @@ router.post(
       const completedSteps =
         progressResult.rows[0]
           .completedSteps;
-
-      // ------------------------------------------------------
-      // Check the mission's evidence progression BEFORE
-      // accepting another reasoning step.
-      // ------------------------------------------------------
 
       const evidenceProgressResult =
         await client.query(
@@ -746,8 +774,6 @@ router.post(
         currentAvailableEvidenceCount >=
           totalEvidenceCount;
 
-      // Once every mission artefact has been unlocked,
-      // the reasoning-step phase is complete.
       if (allEvidenceAlreadyUnlocked) {
         await client.query(
           'ROLLBACK',
@@ -764,10 +790,6 @@ router.post(
 
       const nextStepNo =
         completedSteps + 1;
-
-      // ------------------------------------------------------
-      // Validate selected evidence.
-      // ------------------------------------------------------
 
       if (evidenceId !== null) {
         const evidenceResult =
@@ -833,10 +855,6 @@ router.post(
         }
       }
 
-      // ------------------------------------------------------
-      // Persist the reasoning step.
-      // ------------------------------------------------------
-
       const stepResult =
         await client.query(
           `
@@ -893,10 +911,6 @@ router.post(
       const step =
         stepResult.rows[0];
 
-      // ------------------------------------------------------
-      // Audit the reasoning action.
-      // ------------------------------------------------------
-
       await client.query(
         `
           INSERT INTO audit_events (
@@ -941,10 +955,6 @@ router.post(
           }),
         ],
       );
-
-      // ------------------------------------------------------
-      // Calculate newly available evidence after this step.
-      // ------------------------------------------------------
 
       const availableEvidenceResult =
         await client.query(
@@ -1144,10 +1154,6 @@ router.put(
     try {
       await client.query('BEGIN');
 
-      // ------------------------------------------------------
-      // Lock and validate learner ownership.
-      // ------------------------------------------------------
-
       const attemptResult =
         await client.query(
           `
@@ -1219,10 +1225,6 @@ router.put(
         });
       }
 
-      // ------------------------------------------------------
-      // Validate that the cause belongs to this mission.
-      // ------------------------------------------------------
-
       const causeResult =
         await client.query(
           `
@@ -1271,10 +1273,6 @@ router.put(
 
       const cause =
         causeResult.rows[0];
-
-      // ------------------------------------------------------
-      // Insert or update one assessment per attempt + cause.
-      // ------------------------------------------------------
 
       const assessmentResult =
         await client.query(
@@ -1337,10 +1335,6 @@ router.put(
       const savedAssessment =
         assessmentResult.rows[0];
 
-      // ------------------------------------------------------
-      // Recalculate cause-assessment progress after this save.
-      // ------------------------------------------------------
-
       const causeProgressResult =
         await client.query(
           `
@@ -1379,10 +1373,6 @@ router.put(
         totalCauseCount > 0 &&
         assessedCauseCount >=
           totalCauseCount;
-
-      // ------------------------------------------------------
-      // Audit the assessment.
-      // ------------------------------------------------------
 
       await client.query(
         `
@@ -1458,6 +1448,412 @@ router.put(
 
         message:
           'The cause assessment could not be saved.',
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// ============================================================
+// PUT /api/attempts/:attemptId/conclusion
+// Save or update the learner's final technical conclusion.
+// The attempt remains in_progress until formally submitted.
+// ============================================================
+
+router.put(
+  '/:attemptId/conclusion',
+  authenticate,
+  async (req, res) => {
+    if (req.user.role !== 'learner') {
+      return res.status(403).json({
+        error:
+          'learner_access_required',
+
+        message:
+          'Only learners can save a final technical conclusion.',
+      });
+    }
+
+    const attemptId = Number(
+      req.params.attemptId,
+    );
+
+    if (
+      !Number.isInteger(attemptId) ||
+      attemptId <= 0
+    ) {
+      return res.status(400).json({
+        error:
+          'invalid_attempt_id',
+
+        message:
+          'A valid investigation attempt ID is required.',
+      });
+    }
+
+    const probableRootCause =
+      typeof req.body?.probableRootCause ===
+      'string'
+        ? req.body.probableRootCause.trim()
+        : '';
+
+    const finalReasoning =
+      typeof req.body?.finalReasoning ===
+      'string'
+        ? req.body.finalReasoning.trim()
+        : '';
+
+    const recommendedAction =
+      typeof req.body?.recommendedAction ===
+      'string'
+        ? req.body.recommendedAction.trim()
+        : '';
+
+    if (!probableRootCause) {
+      return res.status(400).json({
+        error:
+          'probable_root_cause_required',
+
+        message:
+          'Identify the most probable root cause before saving the conclusion.',
+      });
+    }
+
+    if (!finalReasoning) {
+      return res.status(400).json({
+        error:
+          'final_reasoning_required',
+
+        message:
+          'Explain how the evidence supports your final technical conclusion.',
+      });
+    }
+
+    if (!recommendedAction) {
+      return res.status(400).json({
+        error:
+          'recommended_action_required',
+
+        message:
+          'Recommend the technical action that should be taken.',
+      });
+    }
+
+    const client =
+      await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const attemptResult =
+        await client.query(
+          `
+            SELECT
+              a.attempt_id::int
+                AS "attemptId",
+
+              a.learner_id::int
+                AS "learnerId",
+
+              a.scenario_id::int
+                AS "scenarioId",
+
+              a.status,
+
+              s.scenario_code
+                AS "scenarioCode"
+
+            FROM attempts a
+
+            INNER JOIN scenarios s
+              ON s.scenario_id =
+                 a.scenario_id
+
+            WHERE a.attempt_id = $1
+              AND a.learner_id = $2
+
+            FOR UPDATE OF a;
+          `,
+          [
+            attemptId,
+            req.user.userId,
+          ],
+        );
+
+      if (
+        attemptResult.rowCount === 0
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(404).json({
+          error:
+            'attempt_not_found',
+
+          message:
+            'The requested investigation could not be found.',
+        });
+      }
+
+      const attempt =
+        attemptResult.rows[0];
+
+      if (
+        attempt.status !==
+        'in_progress'
+      ) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'invalid_attempt_state',
+
+          message:
+            'Only an in-progress investigation can update the final technical conclusion.',
+        });
+      }
+
+      // Confirm all evidence is unlocked.
+      const progressResult =
+        await client.query(
+          `
+            SELECT
+              COALESCE(
+                MAX(step_no),
+                0
+              )::int AS "completedSteps"
+
+            FROM investigation_steps
+
+            WHERE attempt_id = $1;
+          `,
+          [
+            attemptId,
+          ],
+        );
+
+      const completedSteps =
+        progressResult.rows[0]
+          .completedSteps;
+
+      const evidenceProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(*)::int
+                AS "totalEvidenceCount",
+
+              COUNT(*) FILTER (
+                WHERE unlock_after_step <= $2
+              )::int
+                AS "availableEvidenceCount"
+
+            FROM evidence_items
+
+            WHERE scenario_id = $1;
+          `,
+          [
+            attempt.scenarioId,
+            completedSteps,
+          ],
+        );
+
+      const totalEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .totalEvidenceCount;
+
+      const availableEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .availableEvidenceCount;
+
+      const allEvidenceUnlocked =
+        totalEvidenceCount > 0 &&
+        availableEvidenceCount >=
+          totalEvidenceCount;
+
+      if (!allEvidenceUnlocked) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'evidence_progress_incomplete',
+
+          message:
+            'Complete the evidence investigation before saving the final technical conclusion.',
+        });
+      }
+
+      // Confirm all active causes are assessed.
+      const causeProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(co.cause_option_id)::int
+                AS "totalCauseCount",
+
+              COUNT(ca.cause_assessment_id)::int
+                AS "assessedCauseCount"
+
+            FROM cause_options co
+
+            LEFT JOIN cause_assessments ca
+              ON ca.cause_option_id =
+                 co.cause_option_id
+              AND ca.attempt_id = $2
+
+            WHERE co.scenario_id = $1
+              AND co.is_active = TRUE;
+          `,
+          [
+            attempt.scenarioId,
+            attemptId,
+          ],
+        );
+
+      const totalCauseCount =
+        causeProgressResult.rows[0]
+          .totalCauseCount;
+
+      const assessedCauseCount =
+        causeProgressResult.rows[0]
+          .assessedCauseCount;
+
+      const allCausesAssessed =
+        totalCauseCount > 0 &&
+        assessedCauseCount >=
+          totalCauseCount;
+
+      if (!allCausesAssessed) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'cause_assessment_incomplete',
+
+          message:
+            'Assess every active competing cause before saving the final technical conclusion.',
+        });
+      }
+
+      // Save without submitting yet.
+      const conclusionResult =
+        await client.query(
+          `
+            UPDATE attempts
+
+            SET
+              probable_root_cause = $2,
+              final_reasoning = $3,
+              recommended_action = $4
+
+            WHERE attempt_id = $1
+
+            RETURNING
+              probable_root_cause
+                AS "probableRootCause",
+
+              final_reasoning
+                AS "finalReasoning",
+
+              recommended_action
+                AS "recommendedAction";
+          `,
+          [
+            attemptId,
+            probableRootCause,
+            finalReasoning,
+            recommendedAction,
+          ],
+        );
+
+      const conclusion =
+        conclusionResult.rows[0];
+
+      // Audit the workflow event without copying the
+      // learner's full conclusion into the audit log.
+      await client.query(
+        `
+          INSERT INTO audit_events (
+            user_id,
+            event_type,
+            entity_type,
+            entity_id,
+            outcome,
+            description,
+            metadata
+          )
+          VALUES (
+            $1,
+            'FINAL_CONCLUSION_SAVED',
+            'attempt',
+            $2,
+            'success',
+            $3,
+            $4::jsonb
+          );
+        `,
+        [
+          req.user.userId,
+          attemptId,
+
+          `Learner saved the final technical conclusion for mission ${attempt.scenarioCode}.`,
+
+          JSON.stringify({
+            attemptId,
+            scenarioId:
+              attempt.scenarioId,
+            conclusionComplete:
+              true,
+          }),
+        ],
+      );
+
+      await client.query('COMMIT');
+
+      return res.status(200).json({
+        conclusion,
+
+        conclusionProgress: {
+          isConclusionComplete:
+            true,
+        },
+
+        evidenceProgress: {
+          availableEvidenceCount,
+          totalEvidenceCount,
+          allEvidenceUnlocked,
+        },
+
+        causeProgress: {
+          assessedCauseCount,
+          totalCauseCount,
+          allCausesAssessed,
+        },
+      });
+    } catch (error) {
+      await client.query(
+        'ROLLBACK',
+      );
+
+      console.error(
+        'Failed to save final technical conclusion:',
+        error.message,
+      );
+
+      return res.status(500).json({
+        error:
+          'final_conclusion_unavailable',
+
+        message:
+          'The final technical conclusion could not be saved.',
       });
     } finally {
       client.release();
