@@ -1,1 +1,455 @@
-<p>reviewer-dashboard works!</p>
+<main class="reviewer-dashboard">
+  <header class="reviewer-dashboard__header">
+    <div>
+      <p class="reviewer-dashboard__eyebrow">
+        FIRSTCOMMIT / REVIEWER WORKSPACE
+      </p>
+
+      <h1>
+        Submitted Investigations
+      </h1>
+
+      <p class="reviewer-dashboard__summary">
+        Review submitted learner investigations, inspect the full
+        evidence trail, and evaluate the technical reasoning before
+        recording reviewer feedback.
+      </p>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <section class="reviewer-dashboard__status">
+      <p>Loading submitted investigations...</p>
+    </section>
+  }
+
+  @if (loadError()) {
+    <section
+      class="reviewer-dashboard__status reviewer-dashboard__status--error"
+      role="alert"
+    >
+      <p>{{ loadError() }}</p>
+    </section>
+  }
+
+  @if (
+    !isLoading() &&
+    !loadError()
+  ) {
+    <section
+      class="reviewer-dashboard__section"
+      aria-labelledby="queue-title"
+    >
+      <div class="reviewer-section-heading">
+        <p class="reviewer-section-heading__label">
+          01 / REVIEW QUEUE
+        </p>
+
+        <h2 id="queue-title">
+          Awaiting Review
+        </h2>
+
+        <p>
+          Only investigations that have been formally submitted
+          by a learner appear in this queue.
+        </p>
+      </div>
+
+      @if (investigations().length === 0) {
+        <div class="reviewer-dashboard__empty">
+          <p>
+            There are currently no submitted investigations
+            awaiting reviewer assessment.
+          </p>
+        </div>
+      } @else {
+        <div class="reviewer-queue">
+          @for (
+            investigation of investigations();
+            track investigation.attemptId
+          ) {
+            <article class="reviewer-card">
+              <div class="reviewer-card__header">
+                <div>
+                  <span class="reviewer-card__code">
+                    {{ investigation.scenarioCode }}
+                  </span>
+
+                  <h3>
+                    {{ investigation.title }}
+                  </h3>
+                </div>
+
+                <span class="reviewer-card__status">
+                  {{ investigation.status }}
+                </span>
+              </div>
+
+              <div class="reviewer-card__meta">
+                <span>
+                  Attempt #{{ investigation.attemptId }}
+                </span>
+
+                <span>
+                  Learner #{{ investigation.learnerId }}
+                </span>
+
+                <span>
+                  Submitted
+                  {{ investigation.submittedAt }}
+                </span>
+              </div>
+
+              <button
+                class="reviewer-dashboard__primary-action"
+                type="button"
+                [disabled]="isLoadingDetail()"
+                (click)="
+                  openInvestigation(
+                    investigation.attemptId
+                  )
+                "
+              >
+                @if (
+                  isLoadingDetail() &&
+                  selectedInvestigation()?.attempt.attemptId ===
+                    investigation.attemptId
+                ) {
+                  Opening Investigation...
+                } @else {
+                  Open Investigation
+                }
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (detailError()) {
+    <section
+      class="reviewer-dashboard__status reviewer-dashboard__status--error"
+      role="alert"
+    >
+      <p>{{ detailError() }}</p>
+    </section>
+  }
+
+  @if (selectedInvestigation(); as review) {
+    <section
+      class="reviewer-dashboard__section"
+      aria-labelledby="review-title"
+    >
+      <div class="reviewer-detail__top">
+        <div class="reviewer-section-heading">
+          <p class="reviewer-section-heading__label">
+            02 / INVESTIGATION DETAIL
+          </p>
+
+          <h2 id="review-title">
+            {{ review.attempt.scenarioCode }}
+            /
+            {{ review.attempt.title }}
+          </h2>
+
+          <p>
+            Read-only reviewer view of the learner's submitted
+            investigation.
+          </p>
+        </div>
+
+        <button
+          class="reviewer-dashboard__secondary-action"
+          type="button"
+          (click)="closeInvestigation()"
+        >
+          Close Investigation
+        </button>
+      </div>
+
+      <section
+        class="reviewer-overview"
+        aria-label="Reviewer investigation overview"
+      >
+        <article>
+          <p class="reviewer-overview__label">
+            ATTEMPT
+          </p>
+
+          <p>
+            #{{ review.attempt.attemptId }}
+          </p>
+        </article>
+
+        <article>
+          <p class="reviewer-overview__label">
+            STATUS
+          </p>
+
+          <p>
+            {{ review.attempt.status }}
+          </p>
+        </article>
+
+        <article>
+          <p class="reviewer-overview__label">
+            REASONING STEPS
+          </p>
+
+          <p>
+            {{ review.reviewProgress.completedSteps }}
+          </p>
+        </article>
+
+        <article>
+          <p class="reviewer-overview__label">
+            EVIDENCE
+          </p>
+
+          <p>
+            {{ review.reviewProgress.totalEvidenceCount }}
+          </p>
+        </article>
+
+        <article>
+          <p class="reviewer-overview__label">
+            CAUSES ASSESSED
+          </p>
+
+          <p>
+            {{ review.reviewProgress.assessedCauseCount }}
+            /
+            {{ review.reviewProgress.totalCauseCount }}
+          </p>
+        </article>
+
+        <article>
+          <p class="reviewer-overview__label">
+            CONCLUSION
+          </p>
+
+          <p>
+            @if (review.reviewProgress.conclusionComplete) {
+              Complete
+            } @else {
+              Incomplete
+            }
+          </p>
+        </article>
+      </section>
+
+      <section class="reviewer-detail-block">
+        <p class="reviewer-detail-block__label">
+          INCIDENT CONTEXT
+        </p>
+
+        <h3>
+          {{ review.attempt.title }}
+        </h3>
+
+        <p>
+          {{ review.attempt.summary }}
+        </p>
+
+        <div class="reviewer-detail-block__meta">
+          <span>
+            Severity:
+            {{ review.attempt.severity }}
+          </span>
+
+          <span>
+            Affected Layer:
+            {{ review.attempt.affectedLayer }}
+          </span>
+        </div>
+      </section>
+
+      <section class="reviewer-detail-block">
+        <p class="reviewer-detail-block__label">
+          EVIDENCE
+        </p>
+
+        <h3>
+          Mission Evidence
+        </h3>
+
+        <div class="reviewer-evidence-grid">
+          @for (
+            evidence of review.evidence;
+            track evidence.evidenceId
+          ) {
+            <article class="reviewer-evidence-card">
+              <div class="reviewer-evidence-card__header">
+                <span>
+                  {{ evidence.evidenceCode }}
+                </span>
+
+                <span>
+                  {{ evidence.evidenceType }}
+                </span>
+              </div>
+
+              <h4>
+                {{ evidence.title }}
+              </h4>
+
+              <pre>{{ evidence.content }}</pre>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="reviewer-detail-block">
+        <p class="reviewer-detail-block__label">
+          REASONING TRAIL
+        </p>
+
+        <h3>
+          Learner Investigation Reasoning
+        </h3>
+
+        <div class="reviewer-reasoning-list">
+          @for (
+            step of review.steps;
+            track step.stepId
+          ) {
+            <article class="reviewer-reasoning-card">
+              <p class="reviewer-reasoning-card__step">
+                STEP {{ step.stepNo }}
+              </p>
+
+              <div>
+                <h4>Observation</h4>
+
+                <p>
+                  {{ step.observation }}
+                </p>
+              </div>
+
+              <div>
+                <h4>Next Action</h4>
+
+                <p>
+                  {{ step.nextAction }}
+                </p>
+              </div>
+
+              <div>
+                <h4>Reasoning</h4>
+
+                <p>
+                  {{ step.reasoning }}
+                </p>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="reviewer-detail-block">
+        <p class="reviewer-detail-block__label">
+          CAUSE ASSESSMENT
+        </p>
+
+        <h3>
+          Competing Causes
+        </h3>
+
+        <div class="reviewer-causes-list">
+          @for (
+            cause of review.causes;
+            track cause.causeOptionId
+          ) {
+            <article class="reviewer-cause-card">
+              <div class="reviewer-cause-card__header">
+                <div>
+                  <span class="reviewer-cause-card__code">
+                    {{ cause.causeCode }}
+                  </span>
+
+                  <h4>
+                    {{ cause.label }}
+                  </h4>
+                </div>
+
+                <span
+                  class="reviewer-cause-card__status"
+                  [class.reviewer-cause-card__status--supported]="
+                    cause.assessment === 'supported'
+                  "
+                  [class.reviewer-cause-card__status--eliminated]="
+                    cause.assessment === 'eliminated'
+                  "
+                  [class.reviewer-cause-card__status--unresolved]="
+                    cause.assessment === 'unresolved'
+                  "
+                >
+                  {{ cause.assessment ?? 'unassessed' }}
+                </span>
+              </div>
+
+              <p>
+                {{ cause.description }}
+              </p>
+
+              @if (cause.reasoning) {
+                <div class="reviewer-cause-card__reasoning">
+                  <p class="reviewer-cause-card__reasoning-label">
+                    LEARNER REASONING
+                  </p>
+
+                  <p>
+                    {{ cause.reasoning }}
+                  </p>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="reviewer-detail-block">
+        <p class="reviewer-detail-block__label">
+          FINAL TECHNICAL CONCLUSION
+        </p>
+
+        <h3>
+          Learner Conclusion
+        </h3>
+
+        <div class="reviewer-conclusion">
+          <article>
+            <h4>
+              Probable Root Cause
+            </h4>
+
+            <p>
+              {{ review.conclusion.probableRootCause }}
+            </p>
+          </article>
+
+          <article>
+            <h4>
+              Final Reasoning
+            </h4>
+
+            <p>
+              {{ review.conclusion.finalReasoning }}
+            </p>
+          </article>
+
+          <article>
+            <h4>
+              Recommended Action
+            </h4>
+
+            <p>
+              {{ review.conclusion.recommendedAction }}
+            </p>
+          </article>
+        </div>
+      </section>
+    </section>
+  }
+</main>
