@@ -154,12 +154,15 @@ router.post('/', authenticate, async (req, res) => {
           ],
         );
 
-      attempt = existingAttemptResult.rows[0];
+      attempt =
+        existingAttemptResult.rows[0];
     }
 
     await client.query('COMMIT');
 
-    return res.status(created ? 201 : 200).json({
+    return res.status(
+      created ? 201 : 200,
+    ).json({
       created,
       attempt,
     });
@@ -173,7 +176,8 @@ router.post('/', authenticate, async (req, res) => {
 
     return res.status(500).json({
       error: 'attempt_unavailable',
-      message: 'The investigation could not be started.',
+      message:
+        'The investigation could not be started.',
     });
   } finally {
     client.release();
@@ -182,7 +186,7 @@ router.post('/', authenticate, async (req, res) => {
 
 // ============================================================
 // GET /api/attempts/:attemptId
-// Restore a learner's complete persisted investigation state.
+// Restore the learner's complete persisted investigation state.
 // ============================================================
 
 router.get(
@@ -213,33 +217,34 @@ router.get(
     }
 
     try {
-      // Restore only an attempt owned by
-      // the authenticated learner.
-      const attemptResult = await pool.query(
-        `
-          SELECT
-            a.attempt_id::int AS "attemptId",
-            a.learner_id::int AS "learnerId",
-            a.scenario_id::int AS "scenarioId",
-            a.status,
-            a.started_at AS "startedAt",
-            a.submitted_at AS "submittedAt",
-            a.reviewed_at AS "reviewedAt"
+      const attemptResult =
+        await pool.query(
+          `
+            SELECT
+              a.attempt_id::int AS "attemptId",
+              a.learner_id::int AS "learnerId",
+              a.scenario_id::int AS "scenarioId",
+              a.status,
+              a.started_at AS "startedAt",
+              a.submitted_at AS "submittedAt",
+              a.reviewed_at AS "reviewedAt"
 
-          FROM attempts a
+            FROM attempts a
 
-          WHERE a.attempt_id = $1
-            AND a.learner_id = $2
+            WHERE a.attempt_id = $1
+              AND a.learner_id = $2
 
-          LIMIT 1;
-        `,
-        [
-          attemptId,
-          req.user.userId,
-        ],
-      );
+            LIMIT 1;
+          `,
+          [
+            attemptId,
+            req.user.userId,
+          ],
+        );
 
-      if (attemptResult.rowCount === 0) {
+      if (
+        attemptResult.rowCount === 0
+      ) {
         return res.status(404).json({
           error: 'attempt_not_found',
           message:
@@ -250,48 +255,60 @@ router.get(
       const attempt =
         attemptResult.rows[0];
 
-      // Restore the persisted reasoning trail.
-      const stepsResult = await pool.query(
-        `
-          SELECT
-            step_id::int AS "stepId",
-            attempt_id::int AS "attemptId",
-            evidence_id::int AS "evidenceId",
-            step_no::int AS "stepNo",
-            observation,
-            next_action AS "nextAction",
-            reasoning,
-            created_at AS "createdAt"
+      // ------------------------------------------------------
+      // Restore reasoning trail.
+      // ------------------------------------------------------
 
-          FROM investigation_steps
+      const stepsResult =
+        await pool.query(
+          `
+            SELECT
+              step_id::int AS "stepId",
+              attempt_id::int AS "attemptId",
+              evidence_id::int AS "evidenceId",
+              step_no::int AS "stepNo",
+              observation,
+              next_action AS "nextAction",
+              reasoning,
+              created_at AS "createdAt"
 
-          WHERE attempt_id = $1
+            FROM investigation_steps
 
-          ORDER BY step_no;
-        `,
-        [attemptId],
-      );
+            WHERE attempt_id = $1
 
-      // Restore the persisted investigation progress.
-      const progressResult = await pool.query(
-        `
-          SELECT
-            COALESCE(
-              MAX(step_no),
-              0
-            )::int AS "completedSteps"
+            ORDER BY step_no;
+          `,
+          [attemptId],
+        );
 
-          FROM investigation_steps
+      // ------------------------------------------------------
+      // Restore investigation progress.
+      // ------------------------------------------------------
 
-          WHERE attempt_id = $1;
-        `,
-        [attemptId],
-      );
+      const progressResult =
+        await pool.query(
+          `
+            SELECT
+              COALESCE(
+                MAX(step_no),
+                0
+              )::int AS "completedSteps"
+
+            FROM investigation_steps
+
+            WHERE attempt_id = $1;
+          `,
+          [attemptId],
+        );
 
       const completedSteps =
-        progressResult.rows[0].completedSteps;
+        progressResult.rows[0]
+          .completedSteps;
 
-      // Restore only evidence unlocked by persisted progress.
+      // ------------------------------------------------------
+      // Restore currently unlocked evidence.
+      // ------------------------------------------------------
+
       const availableEvidenceResult =
         await pool.query(
           `
@@ -317,8 +334,43 @@ router.get(
           ],
         );
 
-      // Restore cause assessments already recorded
-      // for this investigation.
+      // ------------------------------------------------------
+      // Determine whether the evidence-investigation phase
+      // is complete.
+      // ------------------------------------------------------
+
+      const totalEvidenceResult =
+        await pool.query(
+          `
+            SELECT
+              COUNT(*)::int
+                AS "totalEvidenceCount"
+
+            FROM evidence_items
+
+            WHERE scenario_id = $1;
+          `,
+          [
+            attempt.scenarioId,
+          ],
+        );
+
+      const totalEvidenceCount =
+        totalEvidenceResult.rows[0]
+          .totalEvidenceCount;
+
+      const availableEvidenceCount =
+        availableEvidenceResult.rowCount;
+
+      const allEvidenceUnlocked =
+        totalEvidenceCount > 0 &&
+        availableEvidenceCount >=
+          totalEvidenceCount;
+
+      // ------------------------------------------------------
+      // Restore saved cause assessments.
+      // ------------------------------------------------------
+
       const causeAssessmentsResult =
         await pool.query(
           `
@@ -370,6 +422,12 @@ router.get(
           completedSteps,
         },
 
+        evidenceProgress: {
+          availableEvidenceCount,
+          totalEvidenceCount,
+          allEvidenceUnlocked,
+        },
+
         steps:
           stepsResult.rows,
 
@@ -397,6 +455,7 @@ router.get(
 // ============================================================
 // POST /api/attempts/:attemptId/steps
 // Record one learner reasoning step.
+// Evidence progression is controlled by the backend.
 // ============================================================
 
 router.post(
@@ -450,17 +509,20 @@ router.post(
     }
 
     const observation =
-      typeof req.body?.observation === 'string'
+      typeof req.body?.observation ===
+      'string'
         ? req.body.observation.trim()
         : '';
 
     const nextAction =
-      typeof req.body?.nextAction === 'string'
+      typeof req.body?.nextAction ===
+      'string'
         ? req.body.nextAction.trim()
         : '';
 
     const reasoning =
-      typeof req.body?.reasoning === 'string'
+      typeof req.body?.reasoning ===
+      'string'
         ? req.body.reasoning.trim()
         : '';
 
@@ -494,15 +556,28 @@ router.post(
     try {
       await client.query('BEGIN');
 
+      // ------------------------------------------------------
+      // Lock the attempt so simultaneous requests cannot
+      // calculate the same step number.
+      // ------------------------------------------------------
+
       const attemptResult =
         await client.query(
           `
             SELECT
-              a.attempt_id::int AS "attemptId",
-              a.learner_id::int AS "learnerId",
-              a.scenario_id::int AS "scenarioId",
+              a.attempt_id::int
+                AS "attemptId",
+
+              a.learner_id::int
+                AS "learnerId",
+
+              a.scenario_id::int
+                AS "scenarioId",
+
               a.status,
-              s.scenario_code AS "scenarioCode"
+
+              s.scenario_code
+                AS "scenarioCode"
 
             FROM attempts a
 
@@ -524,7 +599,9 @@ router.post(
       if (
         attemptResult.rowCount === 0
       ) {
-        await client.query('ROLLBACK');
+        await client.query(
+          'ROLLBACK',
+        );
 
         return res.status(404).json({
           error: 'attempt_not_found',
@@ -537,16 +614,25 @@ router.post(
         attemptResult.rows[0];
 
       if (
-        attempt.status !== 'in_progress'
+        attempt.status !==
+        'in_progress'
       ) {
-        await client.query('ROLLBACK');
+        await client.query(
+          'ROLLBACK',
+        );
 
         return res.status(409).json({
-          error: 'invalid_attempt_state',
+          error:
+            'invalid_attempt_state',
+
           message:
             'Only an in-progress investigation can record new reasoning steps.',
         });
       }
+
+      // ------------------------------------------------------
+      // Determine the current persisted step count.
+      // ------------------------------------------------------
 
       const progressResult =
         await client.query(
@@ -561,23 +647,91 @@ router.post(
 
             WHERE attempt_id = $1;
           `,
-          [attemptId],
+          [
+            attemptId,
+          ],
         );
 
       const completedSteps =
-        progressResult.rows[0].completedSteps;
+        progressResult.rows[0]
+          .completedSteps;
+
+      // ------------------------------------------------------
+      // Check the mission's evidence progression BEFORE
+      // accepting another reasoning step.
+      // ------------------------------------------------------
+
+      const evidenceProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(*)::int
+                AS "totalEvidenceCount",
+
+              COUNT(*) FILTER (
+                WHERE unlock_after_step <= $2
+              )::int
+                AS "availableEvidenceCount"
+
+            FROM evidence_items
+
+            WHERE scenario_id = $1;
+          `,
+          [
+            attempt.scenarioId,
+            completedSteps,
+          ],
+        );
+
+      const totalEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .totalEvidenceCount;
+
+      const currentAvailableEvidenceCount =
+        evidenceProgressResult.rows[0]
+          .availableEvidenceCount;
+
+      const allEvidenceAlreadyUnlocked =
+        totalEvidenceCount > 0 &&
+        currentAvailableEvidenceCount >=
+          totalEvidenceCount;
+
+      // Once every mission artefact has been unlocked,
+      // the reasoning-step phase is complete.
+      if (allEvidenceAlreadyUnlocked) {
+        await client.query(
+          'ROLLBACK',
+        );
+
+        return res.status(409).json({
+          error:
+            'evidence_progress_complete',
+
+          message:
+            'All mission evidence is available. Continue with cause assessment.',
+        });
+      }
 
       const nextStepNo =
         completedSteps + 1;
+
+      // ------------------------------------------------------
+      // Validate selected evidence.
+      // ------------------------------------------------------
 
       if (evidenceId !== null) {
         const evidenceResult =
           await client.query(
             `
               SELECT
-                evidence_id::int AS "evidenceId",
-                evidence_code AS "evidenceCode",
-                unlock_after_step::int AS "unlockAfterStep"
+                evidence_id::int
+                  AS "evidenceId",
+
+                evidence_code
+                  AS "evidenceCode",
+
+                unlock_after_step::int
+                  AS "unlockAfterStep"
 
               FROM evidence_items
 
@@ -600,7 +754,9 @@ router.post(
           );
 
           return res.status(400).json({
-            error: 'invalid_evidence',
+            error:
+              'invalid_evidence',
+
             message:
               'The selected evidence does not belong to this mission.',
           });
@@ -618,12 +774,18 @@ router.post(
           );
 
           return res.status(409).json({
-            error: 'evidence_locked',
+            error:
+              'evidence_locked',
+
             message:
               'That evidence is not available at the current investigation step.',
           });
         }
       }
+
+      // ------------------------------------------------------
+      // Persist the reasoning step.
+      // ------------------------------------------------------
 
       const stepResult =
         await client.query(
@@ -646,14 +808,27 @@ router.post(
             )
 
             RETURNING
-              step_id::int AS "stepId",
-              attempt_id::int AS "attemptId",
-              evidence_id::int AS "evidenceId",
-              step_no::int AS "stepNo",
+              step_id::int
+                AS "stepId",
+
+              attempt_id::int
+                AS "attemptId",
+
+              evidence_id::int
+                AS "evidenceId",
+
+              step_no::int
+                AS "stepNo",
+
               observation,
-              next_action AS "nextAction",
+
+              next_action
+                AS "nextAction",
+
               reasoning,
-              created_at AS "createdAt";
+
+              created_at
+                AS "createdAt";
           `,
           [
             attemptId,
@@ -667,6 +842,10 @@ router.post(
 
       const step =
         stepResult.rows[0];
+
+      // ------------------------------------------------------
+      // Audit the reasoning action.
+      // ------------------------------------------------------
 
       await client.query(
         `
@@ -713,17 +892,32 @@ router.post(
         ],
       );
 
+      // ------------------------------------------------------
+      // Calculate newly available evidence after this step.
+      // ------------------------------------------------------
+
       const availableEvidenceResult =
         await client.query(
           `
             SELECT
-              evidence_id::int AS "evidenceId",
-              evidence_code AS "evidenceCode",
+              evidence_id::int
+                AS "evidenceId",
+
+              evidence_code
+                AS "evidenceCode",
+
               title,
-              evidence_type AS "evidenceType",
+
+              evidence_type
+                AS "evidenceType",
+
               content,
-              sequence_no::int AS "sequenceNo",
-              unlock_after_step::int AS "unlockAfterStep"
+
+              sequence_no::int
+                AS "sequenceNo",
+
+              unlock_after_step::int
+                AS "unlockAfterStep"
 
             FROM evidence_items
 
@@ -745,6 +939,14 @@ router.post(
             nextStepNo,
         );
 
+      const availableEvidenceCount =
+        availableEvidenceResult.rowCount;
+
+      const allEvidenceUnlocked =
+        totalEvidenceCount > 0 &&
+        availableEvidenceCount >=
+          totalEvidenceCount;
+
       await client.query('COMMIT');
 
       return res.status(201).json({
@@ -755,13 +957,21 @@ router.post(
             nextStepNo,
         },
 
+        evidenceProgress: {
+          availableEvidenceCount,
+          totalEvidenceCount,
+          allEvidenceUnlocked,
+        },
+
         availableEvidence:
           availableEvidenceResult.rows,
 
         newlyUnlockedEvidence,
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query(
+        'ROLLBACK',
+      );
 
       console.error(
         'Failed to record investigation step:',
@@ -813,7 +1023,8 @@ router.put(
       attemptId <= 0
     ) {
       return res.status(400).json({
-        error: 'invalid_attempt_id',
+        error:
+          'invalid_attempt_id',
 
         message:
           'A valid investigation attempt ID is required.',
@@ -853,7 +1064,8 @@ router.put(
       )
     ) {
       return res.status(400).json({
-        error: 'invalid_assessment',
+        error:
+          'invalid_assessment',
 
         message:
           'Assessment must be supported, eliminated, or unresolved.',
@@ -868,7 +1080,8 @@ router.put(
 
     if (!reasoning) {
       return res.status(400).json({
-        error: 'reasoning_required',
+        error:
+          'reasoning_required',
 
         message:
           'Explain why this cause is supported, eliminated, or unresolved.',
@@ -881,15 +1094,27 @@ router.put(
     try {
       await client.query('BEGIN');
 
+      // ------------------------------------------------------
+      // Lock and validate learner ownership.
+      // ------------------------------------------------------
+
       const attemptResult =
         await client.query(
           `
             SELECT
-              a.attempt_id::int AS "attemptId",
-              a.learner_id::int AS "learnerId",
-              a.scenario_id::int AS "scenarioId",
+              a.attempt_id::int
+                AS "attemptId",
+
+              a.learner_id::int
+                AS "learnerId",
+
+              a.scenario_id::int
+                AS "scenarioId",
+
               a.status,
-              s.scenario_code AS "scenarioCode"
+
+              s.scenario_code
+                AS "scenarioCode"
 
             FROM attempts a
 
@@ -916,7 +1141,8 @@ router.put(
         );
 
         return res.status(404).json({
-          error: 'attempt_not_found',
+          error:
+            'attempt_not_found',
 
           message:
             'The requested investigation could not be found.',
@@ -927,7 +1153,8 @@ router.put(
         attemptResult.rows[0];
 
       if (
-        attempt.status !== 'in_progress'
+        attempt.status !==
+        'in_progress'
       ) {
         await client.query(
           'ROLLBACK',
@@ -941,6 +1168,10 @@ router.put(
             'Only an in-progress investigation can update cause assessments.',
         });
       }
+
+      // ------------------------------------------------------
+      // Validate that the cause belongs to this mission.
+      // ------------------------------------------------------
 
       const causeResult =
         await client.query(
@@ -990,6 +1221,10 @@ router.put(
 
       const cause =
         causeResult.rows[0];
+
+      // ------------------------------------------------------
+      // Insert or update one assessment per attempt + cause.
+      // ------------------------------------------------------
 
       const assessmentResult =
         await client.query(
@@ -1052,6 +1287,10 @@ router.put(
       const savedAssessment =
         assessmentResult.rows[0];
 
+      // ------------------------------------------------------
+      // Audit the assessment.
+      // ------------------------------------------------------
+
       await client.query(
         `
           INSERT INTO audit_events (
@@ -1105,7 +1344,9 @@ router.put(
           savedAssessment,
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query(
+        'ROLLBACK',
+      );
 
       console.error(
         'Failed to save cause assessment:',
