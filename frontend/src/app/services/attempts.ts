@@ -25,6 +25,11 @@ export type CauseAssessmentStatus =
   | 'eliminated'
   | 'unresolved';
 
+export type ReviewerRating =
+  | 'strong'
+  | 'developing'
+  | 'needs_revision';
+
 export interface Attempt {
   attemptId: number;
   learnerId: number;
@@ -45,7 +50,7 @@ export interface StartAttemptRequest {
 
 export interface StartAttemptResponse {
   created: boolean;
-  attempt: Attempt;
+  attempt: PersistedAttempt;
 }
 
 export interface InvestigationStep {
@@ -107,6 +112,16 @@ export interface ConclusionProgress {
   isConclusionComplete: boolean;
 }
 
+export interface LearnerReviewerFeedback {
+  feedbackId: number;
+  reviewerId: number;
+  reasoningQuality: ReviewerRating;
+  evidenceUsage: ReviewerRating;
+  technicalCommunication: ReviewerRating;
+  feedbackText: string;
+  createdAt: string;
+}
+
 export interface AttemptStateResponse {
   attempt: PersistedAttempt;
   progress: AttemptProgress;
@@ -117,6 +132,8 @@ export interface AttemptStateResponse {
   steps: InvestigationStep[];
   availableEvidence: InvestigationEvidence[];
   causeAssessments: CauseAssessment[];
+  reviewerFeedback:
+    LearnerReviewerFeedback | null;
 }
 
 export interface RecordStepRequest {

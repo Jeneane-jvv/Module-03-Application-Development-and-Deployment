@@ -1003,10 +1003,8 @@
 
             <label class="submission-confirmation">
               <input
+                #submissionConfirmation
                 type="checkbox"
-                [checked]="submissionConfirmed()"
-                [disabled]="isSubmittingAttempt()"
-                (change)="submissionConfirmed.set($any($event.target).checked)"
               />
 
               <span>
@@ -1028,7 +1026,7 @@
               class="workspace__primary-action"
               type="button"
               [disabled]="
-                !submissionConfirmed() ||
+                !submissionConfirmation.checked ||
                 isSubmittingAttempt()
               "
               (click)="submitForReview()"
@@ -1079,7 +1077,7 @@
           >
             <p class="investigation-complete__label">
               @if (attempt.status === 'reviewed') {
-                REVIEW COMPLETE
+                MISSION COMPLETE
               } @else {
                 SUBMITTED FOR REVIEW
               }
@@ -1087,7 +1085,7 @@
 
             <h3>
               @if (attempt.status === 'reviewed') {
-                Reviewer assessment is complete
+                Investigation reviewed and completed
               } @else {
                 Investigation is awaiting reviewer assessment
               }
@@ -1098,11 +1096,25 @@
               · {{ attempt.status }}
             </p>
 
-            <p>
-              Learner editing is locked for this attempt.
-              The saved investigation record remains available
-              as the evidence submitted for review.
-            </p>
+            @if (attempt.status === 'reviewed') {
+              <p>
+                The investigation lifecycle is complete. Your submitted
+                evidence, reasoning, cause assessments, and final technical
+                conclusion remain locked as the reviewed mission record.
+              </p>
+
+              @if (attempt.reviewedAt) {
+                <p class="investigation-complete__timestamp">
+                  Reviewed {{ attempt.reviewedAt }}
+                </p>
+              }
+            } @else {
+              <p>
+                Learner editing is locked for this attempt.
+                The saved investigation record remains available
+                as the evidence submitted for review.
+              </p>
+            }
           </div>
 
           @if (submitSuccess()) {
@@ -1116,5 +1128,108 @@
         }
       }
     </section>
+
+    <!-- ================================================== -->
+    <!-- 07 / REVIEWER FEEDBACK                              -->
+    <!-- ================================================== -->
+
+    @if (
+      currentAttempt();
+      as attempt
+    ) {
+      @if (attempt.status === 'reviewed') {
+        <section
+          class="workspace__section reviewer-feedback"
+          aria-labelledby="reviewer-feedback-title"
+        >
+          <div class="section-heading">
+            <p class="section-heading__label">
+              07 / REVIEWER FEEDBACK
+            </p>
+
+            <h2 id="reviewer-feedback-title">
+              Mission Review
+            </h2>
+
+            <p>
+              Review the assessment recorded after your submitted
+              investigation was evaluated.
+            </p>
+          </div>
+
+          @if (reviewerFeedback(); as feedback) {
+            <div class="reviewer-feedback__summary">
+              <article class="reviewer-feedback__rating">
+                <p class="reviewer-feedback__rating-label">
+                  REASONING QUALITY
+                </p>
+
+                <p class="reviewer-feedback__rating-value">
+                  {{ feedback.reasoningQuality }}
+                </p>
+              </article>
+
+              <article class="reviewer-feedback__rating">
+                <p class="reviewer-feedback__rating-label">
+                  EVIDENCE USAGE
+                </p>
+
+                <p class="reviewer-feedback__rating-value">
+                  {{ feedback.evidenceUsage }}
+                </p>
+              </article>
+
+              <article class="reviewer-feedback__rating">
+                <p class="reviewer-feedback__rating-label">
+                  TECHNICAL COMMUNICATION
+                </p>
+
+                <p class="reviewer-feedback__rating-value">
+                  {{ feedback.technicalCommunication }}
+                </p>
+              </article>
+            </div>
+
+            <article class="reviewer-feedback__message">
+              <p class="reviewer-feedback__message-label">
+                REVIEWER FEEDBACK
+              </p>
+
+              <p>
+                {{ feedback.feedbackText }}
+              </p>
+
+              <p class="reviewer-feedback__meta">
+                Feedback record #{{ feedback.feedbackId }}
+                · Reviewed {{ feedback.createdAt }}
+              </p>
+            </article>
+
+            <div
+              class="reviewer-feedback__completion"
+              role="status"
+            >
+              <p class="reviewer-feedback__completion-label">
+                INVESTIGATION LIFECYCLE COMPLETE
+              </p>
+
+              <p>
+                Your mission moved from investigation to submission,
+                reviewer assessment, and recorded feedback. The completed
+                record is retained as evidence of the full workflow.
+              </p>
+            </div>
+          } @else {
+            <div class="incident-panel">
+              <p>
+                This mission is marked as reviewed, but reviewer feedback
+                could not be loaded. Refresh the investigation before
+                continuing.
+              </p>
+            </div>
+          }
+        </section>
+      }
+    }
   }
 </main>

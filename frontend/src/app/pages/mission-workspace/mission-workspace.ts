@@ -15,7 +15,6 @@ import {
 import { ActivatedRoute } from '@angular/router';
 
 import {
-  Attempt,
   AttemptStateResponse,
   Attempts,
   CauseAssessment,
@@ -26,6 +25,8 @@ import {
   FinalConclusion,
   InvestigationEvidence,
   InvestigationStep,
+  LearnerReviewerFeedback,
+  PersistedAttempt,
   RecordStepResponse,
 } from '../../services/attempts';
 
@@ -57,7 +58,7 @@ export class MissionWorkspace implements OnInit {
     );
 
   readonly currentAttempt =
-    signal<Attempt | null>(
+    signal<PersistedAttempt | null>(
       null,
     );
 
@@ -103,6 +104,11 @@ export class MissionWorkspace implements OnInit {
     signal<ConclusionProgress>({
       isConclusionComplete: false,
     });
+
+  readonly reviewerFeedback =
+    signal<LearnerReviewerFeedback | null>(
+      null,
+    );
 
   readonly isLoading =
     signal(true);
@@ -1048,6 +1054,10 @@ export class MissionWorkspace implements OnInit {
 
     this.conclusionProgress.set(
       state.conclusionProgress,
+    );
+
+    this.reviewerFeedback.set(
+      state.reviewerFeedback,
     );
 
     this.conclusionForm.reset({
