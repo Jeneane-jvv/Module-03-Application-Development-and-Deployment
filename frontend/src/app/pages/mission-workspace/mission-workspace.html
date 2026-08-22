@@ -1003,8 +1003,10 @@
 
             <label class="submission-confirmation">
               <input
-                #submissionConfirmation
                 type="checkbox"
+                [checked]="submissionConfirmed()"
+                [disabled]="isSubmittingAttempt()"
+                (change)="submissionConfirmed.set($any($event.target).checked)"
               />
 
               <span>
@@ -1026,7 +1028,7 @@
               class="workspace__primary-action"
               type="button"
               [disabled]="
-                !submissionConfirmation.checked ||
+                !submissionConfirmed() ||
                 isSubmittingAttempt()
               "
               (click)="submitForReview()"

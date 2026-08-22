@@ -122,6 +122,9 @@ export class MissionWorkspace implements OnInit {
   readonly isSubmittingAttempt =
     signal(false);
 
+  readonly submissionConfirmed =
+    signal(false);
+
   readonly loadError =
     signal<string | null>(
       null,
@@ -806,6 +809,14 @@ export class MissionWorkspace implements OnInit {
       return;
     }
 
+    if (!this.submissionConfirmed()) {
+      this.submitError.set(
+        'Confirm that you have reviewed the investigation before submitting for review.',
+      );
+
+      return;
+    }
+
     if (
       attempt.status !==
       'in_progress'
@@ -877,6 +888,10 @@ export class MissionWorkspace implements OnInit {
           );
 
           this.isSubmittingAttempt.set(
+            false,
+          );
+
+          this.submissionConfirmed.set(
             false,
           );
 
