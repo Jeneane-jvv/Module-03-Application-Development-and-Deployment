@@ -15,15 +15,26 @@ import {
 
 import { Auth } from './auth';
 
+export type AttemptStatus =
+  | 'in_progress'
+  | 'submitted'
+  | 'reviewed';
+
+export type CauseAssessmentStatus =
+  | 'supported'
+  | 'eliminated'
+  | 'unresolved';
+
 export interface Attempt {
   attemptId: number;
   learnerId: number;
   scenarioId: number;
-  status: 'in_progress' | 'submitted' | 'reviewed';
+  status: AttemptStatus;
   startedAt: string;
 }
 
-export interface PersistedAttempt extends Attempt {
+export interface PersistedAttempt
+  extends Attempt {
   submittedAt: string | null;
   reviewedAt: string | null;
 }
@@ -62,11 +73,24 @@ export interface AttemptProgress {
   completedSteps: number;
 }
 
+export interface CauseAssessment {
+  causeAssessmentId: number;
+  attemptId: number;
+  causeOptionId: number;
+  causeCode: string;
+  label: string;
+  assessment: CauseAssessmentStatus;
+  reasoning: string;
+  assessedAt: string;
+  updatedAt: string;
+}
+
 export interface AttemptStateResponse {
   attempt: PersistedAttempt;
   progress: AttemptProgress;
   steps: InvestigationStep[];
   availableEvidence: InvestigationEvidence[];
+  causeAssessments: CauseAssessment[];
 }
 
 export interface RecordStepRequest {
@@ -83,10 +107,41 @@ export interface RecordStepResponse {
   newlyUnlockedEvidence: InvestigationEvidence[];
 }
 
+export interface AssessCauseRequest {
+  assessment: CauseAssessmentStatus;
+  reasoning: string;
+}
+
+export interface AssessedCause {
+  causeOptionId: number;
+  causeCode: string;
+  label: string;
+  description: string;
+  sequenceNo: number;
+}
+
+export interface SavedCauseAssessment {
+  causeAssessmentId: number;
+  attemptId: number;
+  causeOptionId: number;
+  assessment: CauseAssessmentStatus;
+  reasoning: string;
+  assessedAt: string;
+  updatedAt: string;
+}
+
+export interface AssessCauseResponse {
+  cause: AssessedCause;
+  assessment: SavedCauseAssessment;
+}
+
 @Service()
 export class Attempts {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(Auth);
+  private readonly http =
+    inject(HttpClient);
+
+  private readonly auth =
+    inject(Auth);
 
   private readonly attemptsUrl =
     'http://localhost:5000/api/attempts';
@@ -94,13 +149,15 @@ export class Attempts {
   startAttempt(
     scenarioId: number,
   ): Observable<StartAttemptResponse> {
-    const headers = this.getAuthHeaders();
+    const headers =
+      this.getAuthHeaders();
 
     if (!headers) {
       return throwError(
-        () => new Error(
-          'Authentication is required to start an investigation.',
-        ),
+        () =>
+          new Error(
+            'Authentication is required to start an investigation.',
+          ),
       );
     }
 
@@ -120,13 +177,15 @@ export class Attempts {
   getAttempt(
     attemptId: number,
   ): Observable<AttemptStateResponse> {
-    const headers = this.getAuthHeaders();
+    const headers =
+      this.getAuthHeaders();
 
     if (!headers) {
       return throwError(
-        () => new Error(
-          'Authentication is required to load an investigation.',
-        ),
+        () =>
+          new Error(
+            'Authentication is required to load an investigation.',
+          ),
       );
     }
 
@@ -142,13 +201,15 @@ export class Attempts {
     attemptId: number,
     request: RecordStepRequest,
   ): Observable<RecordStepResponse> {
-    const headers = this.getAuthHeaders();
+    const headers =
+      this.getAuthHeaders();
 
     if (!headers) {
       return throwError(
-        () => new Error(
-          'Authentication is required to record an investigation step.',
-        ),
+        () =>
+          new Error(
+            'Authentication is required to record an investigation step.',
+          ),
       );
     }
 
@@ -161,15 +222,44 @@ export class Attempts {
     );
   }
 
-  private getAuthHeaders(): HttpHeaders | null {
-    const token = this.auth.getToken();
+  assessCause(
+    attemptId: number,
+    causeOptionId: number,
+    request: AssessCauseRequest,
+  ): Observable<AssessCauseResponse> {
+    const headers =
+      this.getAuthHeaders();
+
+    if (!headers) {
+      return throwError(
+        () =>
+          new Error(
+            'Authentication is required to assess a competing cause.',
+          ),
+      );
+    }
+
+    return this.http.put<AssessCauseResponse>(
+      `${this.attemptsUrl}/${attemptId}/causes/${causeOptionId}`,
+      request,
+      {
+        headers,
+      },
+    );
+  }
+
+  private getAuthHeaders():
+    HttpHeaders | null {
+    const token =
+      this.auth.getToken();
 
     if (!token) {
       return null;
     }
 
     return new HttpHeaders({
-      Authorization: `Bearer ${token}`,
+      Authorization:
+        `Bearer ${token}`,
     });
   }
 }

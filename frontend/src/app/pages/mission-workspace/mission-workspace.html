@@ -132,6 +132,10 @@
       </article>
     </section>
 
+    <!-- ================================================== -->
+    <!-- 01 / CONTEXT                                       -->
+    <!-- ================================================== -->
+
     <section
       class="workspace__section"
       aria-labelledby="incident-title"
@@ -152,6 +156,10 @@
         </p>
       </div>
     </section>
+
+    <!-- ================================================== -->
+    <!-- 02 / EVIDENCE                                      -->
+    <!-- ================================================== -->
 
     <section
       class="workspace__section"
@@ -198,6 +206,10 @@
       </div>
     </section>
 
+    <!-- ================================================== -->
+    <!-- 03 / REASONING TRAIL                               -->
+    <!-- ================================================== -->
+
     <section
       class="workspace__section"
       aria-labelledby="reasoning-title"
@@ -243,17 +255,26 @@
 
                 <div>
                   <h3>Observation</h3>
-                  <p>{{ step.observation }}</p>
+
+                  <p>
+                    {{ step.observation }}
+                  </p>
                 </div>
 
                 <div>
                   <h3>Next Action</h3>
-                  <p>{{ step.nextAction }}</p>
+
+                  <p>
+                    {{ step.nextAction }}
+                  </p>
                 </div>
 
                 <div>
                   <h3>Reasoning</h3>
-                  <p>{{ step.reasoning }}</p>
+
+                  <p>
+                    {{ step.reasoning }}
+                  </p>
                 </div>
               </article>
             }
@@ -415,6 +436,10 @@
       }
     </section>
 
+    <!-- ================================================== -->
+    <!-- 04 / CAUSE ASSESSMENT                              -->
+    <!-- ================================================== -->
+
     <section
       class="workspace__section"
       aria-labelledby="causes-title"
@@ -429,33 +454,260 @@
         </h2>
 
         <p>
-          These are possibilities to investigate,
-          not answers to select blindly.
+          Evaluate each hypothesis against the available
+          evidence. A cause may be supported, eliminated,
+          or remain unresolved.
         </p>
       </div>
 
-      <div class="cause-list">
-        @for (
-          cause of data.competingCauses;
-          track cause.causeOptionId
-        ) {
-          <article class="cause-card">
-            <span class="cause-card__code">
-              {{ cause.causeCode }}
-            </span>
+      @if (!currentAttempt()) {
+        <div class="incident-panel">
+          <p>
+            Start or resume the investigation
+            before assessing competing causes.
+          </p>
+        </div>
+      }
 
-            <div>
-              <h3>
-                {{ cause.label }}
-              </h3>
+      @if (currentAttempt()) {
+        <div class="cause-assessment-list">
+          @for (
+            cause of data.competingCauses;
+            track cause.causeOptionId
+          ) {
+            <article class="cause-assessment-card">
+              <div class="cause-assessment-card__header">
+                <div>
+                  <span class="cause-card__code">
+                    {{ cause.causeCode }}
+                  </span>
 
-              <p>
+                  <h3>
+                    {{ cause.label }}
+                  </h3>
+                </div>
+
+                @if (
+                  findCauseAssessment(
+                    cause.causeOptionId
+                  );
+                  as existingStatus
+                ) {
+                  <span
+                    class="cause-assessment-card__status"
+                    [class.cause-assessment-card__status--supported]="
+                      existingStatus.assessment === 'supported'
+                    "
+                    [class.cause-assessment-card__status--eliminated]="
+                      existingStatus.assessment === 'eliminated'
+                    "
+                    [class.cause-assessment-card__status--unresolved]="
+                      existingStatus.assessment === 'unresolved'
+                    "
+                  >
+                    {{ existingStatus.assessment }}
+                  </span>
+                } @else {
+                  <span
+                    class="cause-assessment-card__status cause-assessment-card__status--unassessed"
+                  >
+                    unassessed
+                  </span>
+                }
+              </div>
+
+              <p class="cause-assessment-card__description">
                 {{ cause.description }}
               </p>
-            </div>
-          </article>
+
+              @if (
+                findCauseAssessment(
+                  cause.causeOptionId
+                );
+                as existingReasoning
+              ) {
+                <div class="cause-assessment-card__saved">
+                  <p class="cause-assessment-card__saved-label">
+                    SAVED REASONING
+                  </p>
+
+                  <p>
+                    {{ existingReasoning.reasoning }}
+                  </p>
+                </div>
+              }
+
+              @if (
+                selectedCause()?.causeOptionId !==
+                cause.causeOptionId
+              ) {
+                <button
+                  class="cause-assessment-card__action"
+                  type="button"
+                  (click)="editCause(cause)"
+                >
+                  @if (
+                    findCauseAssessment(
+                      cause.causeOptionId
+                    )
+                  ) {
+                    Edit Assessment
+                  } @else {
+                    Assess Cause
+                  }
+                </button>
+              }
+
+              @if (
+                selectedCause()?.causeOptionId ===
+                cause.causeOptionId
+              ) {
+                <form
+                  class="cause-assessment-form"
+                  [formGroup]="causeForm"
+                  (ngSubmit)="submitCauseAssessment()"
+                  novalidate
+                >
+                  <div
+                    class="cause-assessment-form__classification"
+                  >
+                    <p>
+                      How does the current evidence
+                      affect this hypothesis?
+                    </p>
+
+                    <div
+                      class="cause-assessment-form__options"
+                    >
+                      <label>
+                        <input
+                          type="radio"
+                          formControlName="assessment"
+                          value="supported"
+                        />
+
+                        <span>
+                          Supported
+                        </span>
+                      </label>
+
+                      <label>
+                        <input
+                          type="radio"
+                          formControlName="assessment"
+                          value="eliminated"
+                        />
+
+                        <span>
+                          Eliminated
+                        </span>
+                      </label>
+
+                      <label>
+                        <input
+                          type="radio"
+                          formControlName="assessment"
+                          value="unresolved"
+                        />
+
+                        <span>
+                          Unresolved
+                        </span>
+                      </label>
+                    </div>
+
+                    @if (
+                      causeForm.controls.assessment.touched &&
+                      causeForm.controls.assessment.invalid
+                    ) {
+                      <p class="reasoning-form__error">
+                        Choose supported, eliminated,
+                        or unresolved.
+                      </p>
+                    }
+                  </div>
+
+                  <div class="reasoning-form__field">
+                    <label
+                      [for]="
+                        'cause-reasoning-' +
+                        cause.causeOptionId
+                      "
+                    >
+                      Explain your assessment
+                    </label>
+
+                    <textarea
+                      [id]="
+                        'cause-reasoning-' +
+                        cause.causeOptionId
+                      "
+                      rows="5"
+                      formControlName="reasoning"
+                      placeholder="Explain how the available evidence supports, eliminates, or leaves this cause unresolved."
+                    ></textarea>
+
+                    @if (
+                      causeForm.controls.reasoning.touched &&
+                      causeForm.controls.reasoning.invalid
+                    ) {
+                      <p class="reasoning-form__error">
+                        Reasoning is required.
+                      </p>
+                    }
+                  </div>
+
+                  @if (causeError()) {
+                    <p
+                      class="reasoning-form__message reasoning-form__message--error"
+                      role="alert"
+                    >
+                      {{ causeError() }}
+                    </p>
+                  }
+
+                  <div
+                    class="cause-assessment-form__actions"
+                  >
+                    <button
+                      class="workspace__primary-action"
+                      type="submit"
+                      [disabled]="
+                        causeForm.invalid ||
+                        isSavingCause()
+                      "
+                    >
+                      @if (isSavingCause()) {
+                        Saving Assessment...
+                      } @else {
+                        Save Assessment
+                      }
+                    </button>
+
+                    <button
+                      class="cause-assessment-form__cancel"
+                      type="button"
+                      [disabled]="isSavingCause()"
+                      (click)="cancelCauseAssessment()"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              }
+            </article>
+          }
+        </div>
+
+        @if (causeSuccess()) {
+          <p
+            class="reasoning-form__message reasoning-form__message--success"
+            role="status"
+          >
+            {{ causeSuccess() }}
+          </p>
         }
-      </div>
+      }
     </section>
   }
 </main>

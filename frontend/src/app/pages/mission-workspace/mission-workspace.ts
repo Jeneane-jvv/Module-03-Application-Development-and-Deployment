@@ -18,12 +18,15 @@ import {
   Attempt,
   AttemptStateResponse,
   Attempts,
+  CauseAssessment,
+  CauseAssessmentStatus,
   InvestigationEvidence,
   InvestigationStep,
   RecordStepResponse,
 } from '../../services/attempts';
 
 import {
+  CauseOption,
   MissionDetailResponse,
   Missions,
 } from '../../services/missions';
@@ -35,7 +38,8 @@ import {
   templateUrl: './mission-workspace.html',
 })
 export class MissionWorkspace implements OnInit {
-  private readonly route = inject(ActivatedRoute);
+  private readonly route =
+    inject(ActivatedRoute);
 
   private readonly missionsService =
     inject(Missions);
@@ -44,10 +48,14 @@ export class MissionWorkspace implements OnInit {
     inject(Attempts);
 
   readonly missionData =
-    signal<MissionDetailResponse | null>(null);
+    signal<MissionDetailResponse | null>(
+      null,
+    );
 
   readonly currentAttempt =
-    signal<Attempt | null>(null);
+    signal<Attempt | null>(
+      null,
+    );
 
   readonly investigationSteps =
     signal<InvestigationStep[]>([]);
@@ -58,7 +66,16 @@ export class MissionWorkspace implements OnInit {
   readonly newlyUnlockedEvidence =
     signal<InvestigationEvidence[]>([]);
 
-  readonly isLoading = signal(true);
+  readonly causeAssessments =
+    signal<CauseAssessment[]>([]);
+
+  readonly selectedCause =
+    signal<CauseOption | null>(
+      null,
+    );
+
+  readonly isLoading =
+    signal(true);
 
   readonly isStartingAttempt =
     signal(false);
@@ -66,57 +83,105 @@ export class MissionWorkspace implements OnInit {
   readonly isSavingStep =
     signal(false);
 
+  readonly isSavingCause =
+    signal(false);
+
   readonly loadError =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   readonly attemptError =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   readonly stepError =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
 
   readonly stepSuccess =
-    signal<string | null>(null);
+    signal<string | null>(
+      null,
+    );
+
+  readonly causeError =
+    signal<string | null>(
+      null,
+    );
+
+  readonly causeSuccess =
+    signal<string | null>(
+      null,
+    );
 
   readonly stepForm = new FormGroup({
-    evidenceId: new FormControl<number | null>(
-      null,
-      {
-        validators: [
-          Validators.required,
-        ],
-      },
-    ),
+    evidenceId:
+      new FormControl<number | null>(
+        null,
+        {
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
 
-    observation: new FormControl(
-      '',
-      {
-        nonNullable: true,
-        validators: [
-          Validators.required,
-        ],
-      },
-    ),
+    observation:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
 
-    nextAction: new FormControl(
-      '',
-      {
-        nonNullable: true,
-        validators: [
-          Validators.required,
-        ],
-      },
-    ),
+    nextAction:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
 
-    reasoning: new FormControl(
-      '',
-      {
-        nonNullable: true,
-        validators: [
-          Validators.required,
-        ],
-      },
-    ),
+    reasoning:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
+  });
+
+  readonly causeForm = new FormGroup({
+    assessment:
+      new FormControl<CauseAssessmentStatus | null>(
+        null,
+        {
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
+
+    reasoning:
+      new FormControl(
+        '',
+        {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+          ],
+        },
+      ),
   });
 
   ngOnInit(): void {
@@ -143,7 +208,8 @@ export class MissionWorkspace implements OnInit {
   }
 
   startInvestigation(): void {
-    const data = this.missionData();
+    const data =
+      this.missionData();
 
     if (
       !data ||
@@ -185,7 +251,9 @@ export class MissionWorkspace implements OnInit {
         },
 
         error: (error) => {
-          this.isStartingAttempt.set(false);
+          this.isStartingAttempt.set(
+            false,
+          );
 
           this.attemptError.set(
             'The investigation could not be started.',
@@ -293,23 +361,6 @@ export class MissionWorkspace implements OnInit {
               'Investigation step saved.',
             );
           }
-
-          console.log({
-            savedStep:
-              response.step.stepNo,
-
-            completedSteps:
-              response.progress
-                .completedSteps,
-
-            newlyUnlockedEvidence:
-              response
-                .newlyUnlockedEvidence
-                .map(
-                  (evidence) =>
-                    evidence.evidenceCode,
-                ),
-          });
         },
 
         error: (error) => {
@@ -319,13 +370,193 @@ export class MissionWorkspace implements OnInit {
             error.error?.message ??
               'The investigation step could not be saved.',
           );
-
-          console.error({
-            stepSaved: false,
-            status: error.status,
-          });
         },
       });
+  }
+
+  editCause(
+    cause: CauseOption,
+  ): void {
+    this.selectedCause.set(cause);
+
+    this.causeError.set(null);
+    this.causeSuccess.set(null);
+
+    const existing =
+      this.findCauseAssessment(
+        cause.causeOptionId,
+      );
+
+    this.causeForm.reset({
+      assessment:
+        existing?.assessment ?? null,
+
+      reasoning:
+        existing?.reasoning ?? '',
+    });
+  }
+
+  cancelCauseAssessment(): void {
+    this.selectedCause.set(null);
+
+    this.causeError.set(null);
+    this.causeSuccess.set(null);
+
+    this.causeForm.reset({
+      assessment: null,
+      reasoning: '',
+    });
+  }
+
+  submitCauseAssessment(): void {
+    const attempt =
+      this.currentAttempt();
+
+    const cause =
+      this.selectedCause();
+
+    if (
+      !attempt ||
+      !cause ||
+      this.isSavingCause()
+    ) {
+      return;
+    }
+
+    if (this.causeForm.invalid) {
+      this.causeForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue =
+      this.causeForm.getRawValue();
+
+    const assessment =
+      formValue.assessment;
+
+    const reasoning =
+      formValue.reasoning.trim();
+
+    if (
+      !assessment ||
+      !reasoning
+    ) {
+      this.causeError.set(
+        'Choose an assessment and explain your reasoning.',
+      );
+
+      return;
+    }
+
+    this.isSavingCause.set(true);
+    this.causeError.set(null);
+    this.causeSuccess.set(null);
+
+    this.attemptsService
+      .assessCause(
+        attempt.attemptId,
+        cause.causeOptionId,
+        {
+          assessment,
+          reasoning,
+        },
+      )
+      .subscribe({
+        next: (response) => {
+          const restoredAssessment:
+            CauseAssessment = {
+              causeAssessmentId:
+                response.assessment
+                  .causeAssessmentId,
+
+              attemptId:
+                response.assessment
+                  .attemptId,
+
+              causeOptionId:
+                response.assessment
+                  .causeOptionId,
+
+              causeCode:
+                response.cause
+                  .causeCode,
+
+              label:
+                response.cause
+                  .label,
+
+              assessment:
+                response.assessment
+                  .assessment,
+
+              reasoning:
+                response.assessment
+                  .reasoning,
+
+              assessedAt:
+                response.assessment
+                  .assessedAt,
+
+              updatedAt:
+                response.assessment
+                  .updatedAt,
+            };
+
+          this.causeAssessments.update(
+            (assessments) => {
+              const remaining =
+                assessments.filter(
+                  (item) =>
+                    item.causeOptionId !==
+                    restoredAssessment
+                      .causeOptionId,
+                );
+
+              return [
+                ...remaining,
+                restoredAssessment,
+              ].sort(
+                (a, b) =>
+                  a.causeOptionId -
+                  b.causeOptionId,
+              );
+            },
+          );
+
+          this.isSavingCause.set(false);
+
+          this.causeSuccess.set(
+            `${response.cause.causeCode} saved as ${response.assessment.assessment}.`,
+          );
+
+          this.selectedCause.set(null);
+
+          this.causeForm.reset({
+            assessment: null,
+            reasoning: '',
+          });
+        },
+
+        error: (error) => {
+          this.isSavingCause.set(false);
+
+          this.causeError.set(
+            error.error?.message ??
+              'The cause assessment could not be saved.',
+          );
+        },
+      });
+  }
+
+  findCauseAssessment(
+    causeOptionId: number,
+  ): CauseAssessment | undefined {
+    return this.causeAssessments()
+      .find(
+        (assessment) =>
+          assessment.causeOptionId ===
+          causeOptionId,
+      );
   }
 
   private loadMission(
@@ -337,32 +568,14 @@ export class MissionWorkspace implements OnInit {
         next: (response) => {
           this.missionData.set(response);
           this.isLoading.set(false);
-
-          console.log({
-            scenarioCode:
-              response.mission.scenarioCode,
-
-            evidenceCount:
-              response.availableEvidence
-                .length,
-
-            causeCount:
-              response.competingCauses
-                .length,
-          });
         },
 
-        error: (error) => {
+        error: () => {
           this.isLoading.set(false);
 
           this.loadError.set(
             'The selected mission could not be loaded.',
           );
-
-          console.error({
-            missionLoaded: false,
-            status: error.status,
-          });
         },
       });
   }
@@ -374,9 +587,13 @@ export class MissionWorkspace implements OnInit {
       .getAttempt(attemptId)
       .subscribe({
         next: (state) => {
-          this.applyAttemptState(state);
+          this.applyAttemptState(
+            state,
+          );
 
-          this.isStartingAttempt.set(false);
+          this.isStartingAttempt.set(
+            false,
+          );
 
           console.log({
             restoredAttempt:
@@ -393,11 +610,24 @@ export class MissionWorkspace implements OnInit {
                 (evidence) =>
                   evidence.evidenceCode,
               ),
+
+            restoredCauseAssessments:
+              state.causeAssessments.map(
+                (assessment) => ({
+                  causeCode:
+                    assessment.causeCode,
+
+                  assessment:
+                    assessment.assessment,
+                }),
+              ),
           });
         },
 
         error: (error) => {
-          this.isStartingAttempt.set(false);
+          this.isStartingAttempt.set(
+            false,
+          );
 
           this.attemptError.set(
             'The investigation state could not be restored.',
@@ -424,6 +654,10 @@ export class MissionWorkspace implements OnInit {
 
     this.investigationSteps.set(
       state.steps,
+    );
+
+    this.causeAssessments.set(
+      state.causeAssessments,
     );
 
     const currentMission =
