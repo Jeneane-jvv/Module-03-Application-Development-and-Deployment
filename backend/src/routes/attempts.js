@@ -415,6 +415,50 @@ router.get(
           ],
         );
 
+      // ------------------------------------------------------
+      // Determine whether the cause-assessment phase
+      // is complete.
+      // ------------------------------------------------------
+
+      const causeProgressResult =
+        await pool.query(
+          `
+            SELECT
+              COUNT(co.cause_option_id)::int
+                AS "totalCauseCount",
+
+              COUNT(ca.cause_assessment_id)::int
+                AS "assessedCauseCount"
+
+            FROM cause_options co
+
+            LEFT JOIN cause_assessments ca
+              ON ca.cause_option_id =
+                 co.cause_option_id
+              AND ca.attempt_id = $2
+
+            WHERE co.scenario_id = $1
+              AND co.is_active = TRUE;
+          `,
+          [
+            attempt.scenarioId,
+            attemptId,
+          ],
+        );
+
+      const totalCauseCount =
+        causeProgressResult.rows[0]
+          .totalCauseCount;
+
+      const assessedCauseCount =
+        causeProgressResult.rows[0]
+          .assessedCauseCount;
+
+      const allCausesAssessed =
+        totalCauseCount > 0 &&
+        assessedCauseCount >=
+          totalCauseCount;
+
       return res.status(200).json({
         attempt,
 
@@ -426,6 +470,12 @@ router.get(
           availableEvidenceCount,
           totalEvidenceCount,
           allEvidenceUnlocked,
+        },
+
+        causeProgress: {
+          assessedCauseCount,
+          totalCauseCount,
+          allCausesAssessed,
         },
 
         steps:
@@ -1288,6 +1338,49 @@ router.put(
         assessmentResult.rows[0];
 
       // ------------------------------------------------------
+      // Recalculate cause-assessment progress after this save.
+      // ------------------------------------------------------
+
+      const causeProgressResult =
+        await client.query(
+          `
+            SELECT
+              COUNT(co.cause_option_id)::int
+                AS "totalCauseCount",
+
+              COUNT(ca.cause_assessment_id)::int
+                AS "assessedCauseCount"
+
+            FROM cause_options co
+
+            LEFT JOIN cause_assessments ca
+              ON ca.cause_option_id =
+                 co.cause_option_id
+              AND ca.attempt_id = $2
+
+            WHERE co.scenario_id = $1
+              AND co.is_active = TRUE;
+          `,
+          [
+            attempt.scenarioId,
+            attemptId,
+          ],
+        );
+
+      const totalCauseCount =
+        causeProgressResult.rows[0]
+          .totalCauseCount;
+
+      const assessedCauseCount =
+        causeProgressResult.rows[0]
+          .assessedCauseCount;
+
+      const allCausesAssessed =
+        totalCauseCount > 0 &&
+        assessedCauseCount >=
+          totalCauseCount;
+
+      // ------------------------------------------------------
       // Audit the assessment.
       // ------------------------------------------------------
 
@@ -1342,6 +1435,12 @@ router.put(
 
         assessment:
           savedAssessment,
+
+        causeProgress: {
+          assessedCauseCount,
+          totalCauseCount,
+          allCausesAssessed,
+        },
       });
     } catch (error) {
       await client.query(
