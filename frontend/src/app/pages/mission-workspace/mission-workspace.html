@@ -1105,7 +1105,7 @@
 
               @if (attempt.reviewedAt) {
                 <p class="investigation-complete__timestamp">
-                  Reviewed {{ attempt.reviewedAt }}
+                  Reviewed {{ formatSouthAfricaTimestamp(attempt.reviewedAt) }}
                 </p>
               }
             } @else {
@@ -1201,7 +1201,7 @@
 
               <p class="reviewer-feedback__meta">
                 Feedback record #{{ feedback.feedbackId }}
-                · Reviewed {{ feedback.createdAt }}
+                · Reviewed {{ formatSouthAfricaTimestamp(feedback.createdAt) }}
               </p>
             </article>
 

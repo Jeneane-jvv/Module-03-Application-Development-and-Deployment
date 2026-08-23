@@ -930,6 +930,58 @@ export class MissionWorkspace implements OnInit {
       );
   }
 
+  formatSouthAfricaTimestamp(
+    value: string | null | undefined,
+  ): string {
+    if (!value) {
+      return 'Not recorded';
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime(),
+      )
+    ) {
+      return value;
+    }
+
+    const parts =
+      new Intl.DateTimeFormat(
+        'en-GB',
+        {
+          timeZone:
+            'Africa/Johannesburg',
+
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        },
+      ).formatToParts(date);
+
+    const getPart = (
+      type: string,
+    ): string =>
+      parts.find(
+        (part) =>
+          part.type === type,
+      )?.value ?? '';
+
+    return (
+      `${getPart('day')} ` +
+      `${getPart('month')} ` +
+      `${getPart('year')} · ` +
+      `${getPart('hour')}:` +
+      `${getPart('minute')} SAST`
+    );
+  }
+
   private loadMission(
     scenarioId: number,
   ): void {
