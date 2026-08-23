@@ -7,6 +7,7 @@
 .error-analyst__header {
   display: grid;
   grid-template-columns:
+    112px
     minmax(0, 1fr)
     auto;
   gap: 2rem;
@@ -24,6 +25,33 @@
       rgba(51, 38, 22, 0.28),
       rgba(15, 23, 42, 0.84)
     );
+}
+
+.error-analyst__identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.error-analyst__avatar {
+  width: 104px;
+  height: 104px;
+
+  object-fit: cover;
+  object-position: center;
+
+  border: 1px solid rgba(245, 158, 11, 0.52);
+  border-radius: 50%;
+
+  background: rgba(15, 23, 42, 0.72);
+
+  box-shadow:
+    0 0 0 4px rgba(245, 158, 11, 0.045),
+    0 16px 36px rgba(2, 6, 23, 0.24);
+}
+
+.error-analyst__header-copy {
+  min-width: 0;
 }
 
 .error-analyst__eyebrow {
@@ -55,6 +83,23 @@
 
   font-size: 0.98rem;
   line-height: 1.7;
+}
+
+.error-analyst__character {
+  width: fit-content;
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0.7rem;
+
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  border-radius: 999px;
+
+  background: rgba(245, 158, 11, 0.04);
+  color: var(--color-text);
+
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .error-analyst__boundary {
@@ -348,10 +393,38 @@
 
 @media (max-width: 900px) {
   .error-analyst__header {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      96px
+      1fr;
+  }
+
+  .error-analyst__avatar {
+    width: 90px;
+    height: 90px;
   }
 
   .error-analyst__boundary {
+    grid-column: 1 / -1;
+  }
+
+  .error-analyst__character {
+  width: fit-content;
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0.7rem;
+
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  border-radius: 999px;
+
+  background: rgba(245, 158, 11, 0.04);
+  color: var(--color-text);
+
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.error-analyst__boundary {
     width: fit-content;
   }
 }
@@ -371,6 +444,18 @@
 }
 
 @media (max-width: 460px) {
+  .error-analyst__header {
+    grid-template-columns: 1fr;
+  }
+
+  .error-analyst__identity {
+    justify-content: flex-start;
+  }
+
+  .error-analyst__boundary {
+    grid-column: auto;
+  }
+
   .error-analyst__header,
   .error-analyst__prompt-grid,
   .error-analyst__response,
