@@ -267,7 +267,7 @@ export class MissionMentorService {
           title:
             'Reduce the biggest uncertainty first.',
           message:
-            'Start with the question that can separate major parts of the system. A useful first step should tell you whether the failure is closer to the frontend, API, database, configuration, or another boundary.',
+            'Start with the question that can separate major parts of the system. A useful first step should tell you whether the failure is closer to the frontend, API, database, configuration, or another boundary. One well-chosen test usually beats three confident guesses. Computers are annoyingly unimpressed by confidence.',
           questions: [
             'What do you know for certain from the current symptoms?',
             'Which system boundary is still uncertain?',
@@ -281,7 +281,7 @@ export class MissionMentorService {
           title:
             'Guidance focuses on the next investigation decision.',
           message:
-            'FirstCommit is designed to help the learner choose a useful next question rather than reveal the root cause. The support is therefore about investigation strategy, not answer generation.',
+            'FirstCommit is designed to help the learner choose a useful next question rather than reveal the root cause. The support is about investigation strategy, not answer generation — no crystal ball required. If we had one, debugging would be much less educational.',
           questions: [
             'Does the prompt help narrow the problem space?',
             'Does the learner still need to inspect evidence?',
@@ -295,7 +295,7 @@ export class MissionMentorService {
           title:
             'Scaffolding should expose the reasoning process.',
           message:
-            'The mentor prompts the learner to identify uncertainty and choose evidence that can reduce it. This preserves observable reasoning evidence instead of replacing it with an answer.',
+            'The mentor prompts the learner to identify uncertainty and choose evidence that can reduce it. This preserves observable reasoning evidence instead of replacing it with an answer. The mentor can point at the door; the learner still has to do the engineering. Sadly, there is no “solve mysteriously” button.',
           questions: [
             'Is the learner required to articulate what remains uncertain?',
             'Does the next action produce assessable reasoning evidence?',
@@ -309,7 +309,7 @@ export class MissionMentorService {
           title:
             'Begin with what you need to know next.',
           message:
-            'A strong investigation starts by turning a vague failure into a useful technical question. The next clue should help separate possible explanations.',
+            'A strong investigation starts by turning a vague failure into a useful technical question. The next clue should help separate possible explanations. Engineers are allowed to be curious before they are correct. In fact, that is usually the cheaper order.',
           questions: [
             'What is the system actually doing?',
             'What part of the system is still uncertain?',
@@ -330,7 +330,7 @@ export class MissionMentorService {
           title:
             'Ask what the evidence proves.',
           message:
-            'Useful evidence changes the probability of one or more explanations. A log line, request, response, configuration value, or database result matters because of what it supports or eliminates.',
+            'Useful evidence changes the probability of one or more explanations. A log line, request, response, configuration value, or database result matters because of what it supports or eliminates. Interesting is not automatically useful. So yes, the blinking thing may have to wait its turn.',
           questions: [
             'What exact claim does this evidence support?',
             'Which competing cause becomes less likely because of it?',
@@ -344,7 +344,7 @@ export class MissionMentorService {
           title:
             'The product rewards evidence-linked reasoning.',
           message:
-            'The mentor does not treat every technical detail as equally useful. It encourages the learner to explain what a finding proves and how it changes the investigation.',
+            'The mentor does not treat every technical detail as equally useful. It encourages the learner to explain what a finding proves and how it changes the investigation. A busy screen is not the same thing as strong evidence. Ten tabs open still count as ten tabs, not ten conclusions.',
           questions: [
             'Is the evidence tied to a specific technical claim?',
             'Can the learner explain why the evidence matters?',
@@ -358,7 +358,7 @@ export class MissionMentorService {
           title:
             'Observation and inference remain distinguishable.',
           message:
-            'The guidance encourages the learner to separate what the evidence directly shows from what they infer from it. That distinction strengthens the assessability of the reasoning.',
+            'The guidance encourages the learner to separate what the evidence directly shows from what they infer from it. That distinction strengthens the assessability of the reasoning. Facts and assumptions should not share the same name badge. They cause enough trouble separately.',
           questions: [
             'What is directly observable?',
             'What conclusion is being inferred?',
@@ -372,7 +372,7 @@ export class MissionMentorService {
           title:
             'A clue is useful when it changes the investigation.',
           message:
-            'Technical evidence should help you support, weaken, or eliminate an explanation. A detail that changes nothing may be interesting without being useful.',
+            'Technical evidence should help you support, weaken, or eliminate an explanation. A detail that changes nothing may be interesting without being useful. Not every blinking light deserves a promotion to “clue”. Some lights are just committed to the aesthetic.',
           questions: [
             'What does this clue show?',
             'Which explanation does it affect?',
@@ -393,7 +393,7 @@ export class MissionMentorService {
           title:
             'Compare causes against the same evidence.',
           message:
-            'Do not ask only whether your preferred cause can explain the symptoms. Ask whether the evidence also fits competing causes and what would distinguish them.',
+            'Do not ask only whether your preferred cause can explain the symptoms. Ask whether the evidence also fits competing causes and what would distinguish them. The first plausible answer does not get a free pass. It still has to show its working.',
           questions: [
             'What evidence would have to be true if this cause were correct?',
             'What evidence would contradict this cause?',
@@ -407,7 +407,7 @@ export class MissionMentorService {
           title:
             'The learner must close alternatives deliberately.',
           message:
-            'FirstCommit keeps competing causes visible so the learner cannot simply select the first plausible explanation. Each assessment requires an explicit reasoning decision.',
+            'FirstCommit keeps competing causes visible so the learner cannot simply select the first plausible explanation. Each assessment requires an explicit reasoning decision. Plausible is a starting point, not a victory lap. Save the confetti for after verification.',
           questions: [
             'Can the learner explain why a cause is supported or eliminated?',
             'Are unresolved causes allowed to remain unresolved?',
@@ -421,7 +421,7 @@ export class MissionMentorService {
           title:
             'Alternative hypotheses remain part of the evidence trail.',
           message:
-            'The mentor encourages comparison rather than premature closure. The persisted assessment states make that analytical process visible for later review.',
+            'The mentor encourages comparison rather than premature closure. The persisted assessment states make that analytical process visible for later review. A hypothesis earns confidence; it does not inherit it. Engineering is rude like that.',
           questions: [
             'Were competing explanations considered?',
             'Is each assessment connected to reasoning?',
@@ -435,7 +435,7 @@ export class MissionMentorService {
           title:
             'The obvious answer is not automatically the right answer.',
           message:
-            'Engineers keep more than one explanation alive until the evidence separates them. This reduces the risk of fixing the wrong thing for the right-looking reason.',
+            'Engineers keep more than one explanation alive until the evidence separates them. This reduces the risk of fixing the wrong thing for the right-looking reason. The obvious suspect still deserves an alibi check. Even localhost gets due process.',
           questions: [
             'What other cause could produce the same symptom?',
             'What clue would separate the two explanations?',
@@ -456,7 +456,7 @@ export class MissionMentorService {
           title:
             'A conclusion should be traceable back to evidence.',
           message:
-            'Before concluding, check that your strongest cause is supported, important alternatives are addressed, and your recommended action actually follows from the technical finding.',
+            'Before concluding, check that your strongest cause is supported, important alternatives are addressed, and your recommended action actually follows from the technical finding. If the conclusion cannot point back to evidence, it is still a hunch wearing a hard hat. Stylish, perhaps — but still a hunch.',
           questions: [
             'Which evidence most strongly supports your conclusion?',
             'Which competing causes have you eliminated or left unresolved?',
@@ -470,7 +470,7 @@ export class MissionMentorService {
           title:
             'The decision gate protects against answer-first behaviour.',
           message:
-            'A defensible conclusion is expected to follow an evidence trail, competing-cause analysis, and a technically relevant recommended action.',
+            'A defensible conclusion is expected to follow an evidence trail, competing-cause analysis, and a technically relevant recommended action. The final answer should feel earned, not merely confident. Confidence is free; evidence has receipts.',
           questions: [
             'Can the conclusion be traced to recorded evidence?',
             'Were realistic alternatives considered?',
@@ -484,7 +484,7 @@ export class MissionMentorService {
           title:
             'Independent judgement remains visible at the decision point.',
           message:
-            'The mentor can ask whether the evidence is sufficient, but the learner must still state the technical conclusion and justify it from the persisted investigation record.',
+            'The mentor can ask whether the evidence is sufficient, but the learner must still state the technical conclusion and justify it from the persisted investigation record. Guidance may sharpen the thinking; authorship stays with the learner. The mentor does not get to steal the pen.',
           questions: [
             'Is the judgement supported by prior reasoning?',
             'Are unresolved uncertainties acknowledged?',
@@ -498,7 +498,7 @@ export class MissionMentorService {
           title:
             'A strong decision explains why it follows from the evidence.',
           message:
-            'The final answer should not feel like a guess at the end of the process. Someone else should be able to follow the evidence and understand how the conclusion was reached.',
+            'The final answer should not feel like a guess at the end of the process. Someone else should be able to follow the evidence and understand how the conclusion was reached. Good engineering leaves breadcrumbs. Preferably enough that Future You does not file a complaint.',
           questions: [
             'What evidence points most strongly to the conclusion?',
             'What alternatives have been ruled out?',
