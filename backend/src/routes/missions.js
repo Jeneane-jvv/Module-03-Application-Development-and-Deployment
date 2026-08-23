@@ -8,148 +8,240 @@ const authenticate = require('../middleware/authenticate');
 
 const router = express.Router();
 
+// ============================================================
 // GET /api/missions
-// Returns the published FirstCommit engineering missions
-// that are available to learners.
+// Returns published FirstCommit engineering missions together
+// with the authenticated learner's current mission state.
+// ============================================================
 
 router.get('/', authenticate, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        s.scenario_id::int AS "scenarioId",
-        s.scenario_code AS "scenarioCode",
-        s.title,
-        s.summary,
-        s.severity,
-        s.affected_layer AS "affectedLayer",
-        s.estimated_minutes AS "estimatedMinutes",
+    const result = await pool.query(
+      `
+        SELECT
+          s.scenario_id::int AS "scenarioId",
+          s.scenario_code AS "scenarioCode",
+          s.title,
+          s.summary,
+          s.severity,
+          s.affected_layer AS "affectedLayer",
+          s.estimated_minutes AS "estimatedMinutes",
 
-        (
-          SELECT COUNT(*)::int
-          FROM evidence_items e
-          WHERE e.scenario_id = s.scenario_id
-        ) AS "evidenceCount",
+          (
+            SELECT COUNT(*)::int
+            FROM evidence_items e
+            WHERE e.scenario_id = s.scenario_id
+          ) AS "evidenceCount",
 
-        (
-          SELECT COUNT(*)::int
-          FROM cause_options c
-          WHERE c.scenario_id = s.scenario_id
-            AND c.is_active = TRUE
-        ) AS "causeCount"
+          (
+            SELECT COUNT(*)::int
+            FROM cause_options c
+            WHERE c.scenario_id = s.scenario_id
+              AND c.is_active = TRUE
+          ) AS "causeCount",
 
-      FROM scenarios s
+          COALESCE(
+            progress."attemptStatus",
+            'not_started'
+          ) AS "attemptStatus"
 
-      WHERE s.is_published = TRUE
+        FROM scenarios s
 
-      ORDER BY s.scenario_code;
-    `);
+        LEFT JOIN LATERAL (
+          SELECT
+            a.status AS "attemptStatus"
+
+          FROM attempts a
+
+          WHERE a.learner_id = $1
+            AND a.scenario_id = s.scenario_id
+
+          ORDER BY
+            CASE a.status
+              WHEN 'reviewed' THEN 3
+              WHEN 'submitted' THEN 2
+              WHEN 'in_progress' THEN 1
+              ELSE 0
+            END DESC,
+            COALESCE(
+              a.reviewed_at,
+              a.submitted_at,
+              a.started_at
+            ) DESC,
+            a.attempt_id DESC
+
+          LIMIT 1
+        ) progress ON TRUE
+
+        WHERE s.is_published = TRUE
+
+        ORDER BY s.scenario_code;
+      `,
+      [
+        req.user.userId,
+      ],
+    );
+
+    const completedCount =
+      result.rows.filter(
+        (mission) =>
+          mission.attemptStatus ===
+          'reviewed',
+      ).length;
 
     res.status(200).json({
       count: result.rowCount,
+      completedCount,
       missions: result.rows,
     });
   } catch (error) {
-    console.error('Failed to load missions:', error.message);
+    console.error(
+      'Failed to load missions:',
+      error.message,
+    );
 
     res.status(500).json({
       error: 'missions_unavailable',
-      message: 'The available missions could not be loaded.',
+      message:
+        'The available missions could not be loaded.',
     });
   }
 });
+
+// ============================================================
 // GET /api/missions/:scenarioId
-// Returns one published mission together with the evidence available
-// when the investigation begins and its active competing causes.
+// Returns one published mission together with the evidence
+// available when the investigation begins and its active
+// competing causes.
+// ============================================================
 
-router.get('/:scenarioId', authenticate, async (req, res) => {
-  const scenarioId = Number(req.params.scenarioId);
+router.get(
+  '/:scenarioId',
+  authenticate,
+  async (req, res) => {
+    const scenarioId =
+      Number(req.params.scenarioId);
 
-  if (!Number.isInteger(scenarioId) || scenarioId <= 0) {
-    return res.status(400).json({
-      error: 'invalid_scenario_id',
-      message: 'A valid mission ID is required.',
-    });
-  }
-
-  try {
-    const missionResult = await pool.query(
-      `
-        SELECT
-          scenario_id::int AS "scenarioId",
-          scenario_code AS "scenarioCode",
-          title,
-          summary,
-          severity,
-          affected_layer AS "affectedLayer",
-          estimated_minutes AS "estimatedMinutes"
-
-        FROM scenarios
-
-        WHERE scenario_id = $1
-          AND is_published = TRUE;
-      `,
-      [scenarioId]
-    );
-
-    if (missionResult.rowCount === 0) {
-      return res.status(404).json({
-        error: 'mission_not_found',
-        message: 'The requested mission could not be found.',
+    if (
+      !Number.isInteger(
+        scenarioId,
+      ) ||
+      scenarioId <= 0
+    ) {
+      return res.status(400).json({
+        error:
+          'invalid_scenario_id',
+        message:
+          'A valid mission ID is required.',
       });
     }
 
-    const evidenceResult = await pool.query(
-      `
-        SELECT
-          evidence_id::int AS "evidenceId",
-          evidence_code AS "evidenceCode",
-          title,
-          evidence_type AS "evidenceType",
-          content,
-          sequence_no AS "sequenceNo",
-          unlock_after_step AS "unlockAfterStep"
+    try {
+      const missionResult =
+        await pool.query(
+          `
+            SELECT
+              scenario_id::int AS "scenarioId",
+              scenario_code AS "scenarioCode",
+              title,
+              summary,
+              severity,
+              affected_layer AS "affectedLayer",
+              estimated_minutes AS "estimatedMinutes"
 
-        FROM evidence_items
+            FROM scenarios
 
-        WHERE scenario_id = $1
-          AND unlock_after_step = 0
+            WHERE scenario_id = $1
+              AND is_published = TRUE;
+          `,
+          [
+            scenarioId,
+          ],
+        );
 
-        ORDER BY sequence_no;
-      `,
-      [scenarioId]
-    );
+      if (
+        missionResult.rowCount === 0
+      ) {
+        return res
+          .status(404)
+          .json({
+            error:
+              'mission_not_found',
+            message:
+              'The requested mission could not be found.',
+          });
+      }
 
-    const causesResult = await pool.query(
-      `
-        SELECT
-          cause_option_id::int AS "causeOptionId",
-          cause_code AS "causeCode",
-          label,
-          description,
-          sequence_no AS "sequenceNo"
+      const evidenceResult =
+        await pool.query(
+          `
+            SELECT
+              evidence_id::int AS "evidenceId",
+              evidence_code AS "evidenceCode",
+              title,
+              evidence_type AS "evidenceType",
+              content,
+              sequence_no AS "sequenceNo",
+              unlock_after_step AS "unlockAfterStep"
 
-        FROM cause_options
+            FROM evidence_items
 
-        WHERE scenario_id = $1
-          AND is_active = TRUE
+            WHERE scenario_id = $1
+              AND unlock_after_step = 0
 
-        ORDER BY sequence_no;
-      `,
-      [scenarioId]
-    );
+            ORDER BY sequence_no;
+          `,
+          [
+            scenarioId,
+          ],
+        );
 
-    res.status(200).json({
-      mission: missionResult.rows[0],
-      availableEvidence: evidenceResult.rows,
-      competingCauses: causesResult.rows,
-    });
-  } catch (error) {
-    console.error('Failed to load mission:', error.message);
+      const causesResult =
+        await pool.query(
+          `
+            SELECT
+              cause_option_id::int AS "causeOptionId",
+              cause_code AS "causeCode",
+              label,
+              description,
+              sequence_no AS "sequenceNo"
 
-    res.status(500).json({
-      error: 'mission_unavailable',
-      message: 'The requested mission could not be loaded.',
-    });
-  }
-});
+            FROM cause_options
+
+            WHERE scenario_id = $1
+              AND is_active = TRUE
+
+            ORDER BY sequence_no;
+          `,
+          [
+            scenarioId,
+          ],
+        );
+
+      res.status(200).json({
+        mission:
+          missionResult.rows[0],
+
+        availableEvidence:
+          evidenceResult.rows,
+
+        competingCauses:
+          causesResult.rows,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to load mission:',
+        error.message,
+      );
+
+      res.status(500).json({
+        error:
+          'mission_unavailable',
+        message:
+          'The requested mission could not be loaded.',
+      });
+    }
+  },
+);
+
 module.exports = router;

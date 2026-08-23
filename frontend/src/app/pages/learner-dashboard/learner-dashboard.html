@@ -1,12 +1,17 @@
 <main class="dashboard">
   <header class="dashboard__header">
     <div>
-      <p class="dashboard__eyebrow">FIRSTCOMMIT</p>
+      <p class="dashboard__eyebrow">
+        FIRSTCOMMIT
+      </p>
 
-      <h1>Learner Mission Control</h1>
+      <h1>
+        Learner Mission Control
+      </h1>
 
       <p class="dashboard__intro">
-        Investigate the evidence. Record what you observe. Follow the reasoning.
+        Investigate the evidence. Record what you observe.
+        Follow the reasoning.
       </p>
     </div>
   </header>
@@ -26,9 +31,18 @@
         </h2>
       </div>
 
-      <p class="missions__count">
-        {{ missions().length }} available
-      </p>
+      <div
+        class="missions__count"
+        aria-label="Mission completion progress"
+      >
+        <span>
+          COMPLETED
+        </span>
+
+        <strong>
+          {{ completedCount() }}/{{ missions().length }}
+        </strong>
+      </div>
     </div>
 
     @if (isLoading()) {
@@ -46,9 +60,15 @@
       </p>
     }
 
-    @if (!isLoading() && !loadError()) {
+    @if (
+      !isLoading() &&
+      !loadError()
+    ) {
       <div class="mission-grid">
-        @for (mission of missions(); track mission.scenarioId) {
+        @for (
+          mission of missions();
+          track mission.scenarioId
+        ) {
           <article class="mission-card">
             <div class="mission-card__top">
               <span class="mission-card__code">
@@ -70,28 +90,40 @@
 
             <dl class="mission-card__meta">
               <div>
-                <dt>Layer</dt>
+                <dt>
+                  Layer
+                </dt>
+
                 <dd>
                   {{ mission.affectedLayer }}
                 </dd>
               </div>
 
               <div>
-                <dt>Evidence</dt>
+                <dt>
+                  Evidence
+                </dt>
+
                 <dd>
                   {{ mission.evidenceCount }}
                 </dd>
               </div>
 
               <div>
-                <dt>Causes</dt>
+                <dt>
+                  Causes
+                </dt>
+
                 <dd>
                   {{ mission.causeCount }}
                 </dd>
               </div>
 
               <div>
-                <dt>Estimate</dt>
+                <dt>
+                  Estimate
+                </dt>
+
                 <dd>
                   {{ mission.estimatedMinutes }} min
                 </dd>
@@ -100,12 +132,15 @@
 
             <a
               class="mission-card__action"
+              [class.mission-card__action--complete]="
+                mission.attemptStatus === 'reviewed'
+              "
               [routerLink]="[
                 '/learner/missions',
                 mission.scenarioId
               ]"
             >
-              Open Mission
+              {{ missionActionLabel(mission.attemptStatus) }}
             </a>
           </article>
         }

@@ -1,69 +1,151 @@
-import { Component, inject } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  HttpErrorResponse,
+} from '@angular/common/http';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import {
+  Router,
+  RouterLink,
+} from '@angular/router';
 
-import { Auth } from '../../services/auth';
+import {
+  Auth,
+} from '../../services/auth';
 
 @Component({
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+  ],
   selector: 'app-login',
   styleUrl: './login.scss',
   templateUrl: './login.html',
 })
 export class Login {
-  private readonly auth = inject(Auth);
-  private readonly router = inject(Router);
+  private readonly auth =
+    inject(Auth);
 
-  loginForm = new FormGroup({
-    email: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.email],
-    }),
+  private readonly router =
+    inject(Router);
 
-    password: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-  });
+  readonly loginError =
+    signal<string | null>(
+      null,
+    );
 
-onSubmit(): void {
-  if (this.loginForm.invalid) {
-    this.loginForm.markAllAsTouched();
-    return;
-  }
+  readonly isSubmitting =
+    signal(false);
 
-  const credentials = this.loginForm.getRawValue();
+  readonly loginForm =
+    new FormGroup({
+      email: new FormControl('', {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+          Validators.email,
+        ],
+      }),
 
-  this.auth.login(credentials).subscribe({
-    next: () => {
-      const currentUser = this.auth.currentUser();
+      password: new FormControl('', {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+        ],
+      }),
+    });
 
-      if (!currentUser) {
-        return;
-      }
+  onSubmit(): void {
+    this.loginError.set(null);
 
-      if (currentUser.role === 'learner') {
-        this.router.navigate(['/learner']);
-        return;
-      }
+    if (
+      this.loginForm.invalid ||
+      this.isSubmitting()
+    ) {
+      this.loginForm
+        .markAllAsTouched();
 
-      if (currentUser.role === 'reviewer') {
-        this.router.navigate(['/reviewer']);
-      }
-    },
+      return;
+    }
 
-    error: (error) => {
-      console.error({
-        authenticated: false,
-        status: error.status,
-        errorCode: error.error?.error,
+    const credentials =
+      this.loginForm
+        .getRawValue();
+
+    this.isSubmitting.set(true);
+
+    this.auth
+      .login(credentials)
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+
+          const currentUser =
+            this.auth.currentUser();
+
+          if (!currentUser) {
+            this.loginError.set(
+              'Mission Control could not confirm your account. Please try again.',
+            );
+
+            return;
+          }
+
+          if (
+            currentUser.role ===
+            'learner'
+          ) {
+            void this.router
+              .navigate(['/learner']);
+
+            return;
+          }
+
+          if (
+            currentUser.role ===
+            'reviewer'
+          ) {
+            void this.router
+              .navigate(['/reviewer']);
+          }
+        },
+
+        error: (
+          error: HttpErrorResponse,
+        ) => {
+          this.isSubmitting.set(false);
+
+          if (
+            error.status === 401 &&
+            error.error?.error ===
+              'invalid_credentials'
+          ) {
+            this.loginError.set(
+              'The supplied email or password is incorrect.',
+            );
+
+            return;
+          }
+
+          this.loginError.set(
+            'Mission Control could not sign you in right now. Please try again.',
+          );
+
+          console.error({
+            authenticated: false,
+            status: error.status,
+            errorCode:
+              error.error?.error,
+          });
+        },
       });
-    },
-  });
-}
+  }
 }

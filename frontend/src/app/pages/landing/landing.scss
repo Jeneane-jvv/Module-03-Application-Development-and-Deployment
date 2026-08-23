@@ -30,8 +30,8 @@
 .hero__layout {
   display: grid;
   grid-template-columns:
-    minmax(0, 0.9fr)
-    minmax(520px, 1.1fr);
+    minmax(0, 0.78fr)
+    minmax(500px, 1.22fr);
   gap: clamp(2rem, 5vw, 5rem);
   align-items: center;
 
@@ -50,7 +50,7 @@
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
 
   color: var(--color-text-muted);
 
-  font-size: clamp(1rem, 1.6vw, 1.16rem);
+  font-size: clamp(1.06rem, 1.6vw, 1.2rem);
   line-height: 1.68;
 }
 
@@ -87,8 +87,8 @@
 
   color: var(--color-text-muted);
 
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .hero__principle strong {
@@ -113,7 +113,7 @@
   color: var(--color-text-muted);
 
   font-family: var(--font-mono);
-  font-size: 0.63rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.055em;
 }
@@ -144,10 +144,10 @@
   background: var(--color-accent);
   color: var(--color-bg);
 
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
 
   cursor: pointer;
 
@@ -209,7 +209,7 @@
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -228,8 +228,8 @@
 
   color: var(--color-text-muted);
 
-  font-size: 0.82rem;
-  line-height: 1.62;
+  font-size: 0.92rem;
+  line-height: 1.68;
 }
 
 .mission-entry__form {
@@ -249,7 +249,7 @@
   color: var(--color-text);
 
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -268,7 +268,7 @@
   color: var(--color-text);
 
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
 
   transition:
     border-color 160ms ease,
@@ -313,7 +313,7 @@
   gap: 0.65rem;
   align-items: flex-start;
 
-  min-height: 80px;
+  min-height: 92px;
   padding: 0.8rem;
 
   border: 1px solid var(--color-border);
@@ -368,7 +368,7 @@
   color: var(--color-text-muted);
 
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
@@ -388,15 +388,15 @@
 .mission-role__content strong {
   color: var(--color-text);
 
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .mission-role__content small {
   color: var(--color-text-muted);
 
-  font-size: 0.7rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .mission-entry__consent {
@@ -427,8 +427,8 @@
 }
 
 .mission-entry__consent span {
-  font-size: 0.72rem;
-  line-height: 1.5;
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 .mission-entry__consent strong {
@@ -438,7 +438,7 @@
 
   color: var(--color-text);
 
-  font-size: 0.75rem;
+  font-size: 0.85rem;
 }
 
 .mission-entry__privacy {
@@ -446,8 +446,8 @@
 
   color: var(--color-text-muted);
 
-  font-size: 0.69rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
 .mission-entry__error {
@@ -456,8 +456,8 @@
   color: var(--color-warning);
 
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  line-height: 1.45;
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 
 .mission-entry__error--panel {
@@ -502,7 +502,7 @@
   color: var(--color-text-muted);
 
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.05em;
 }
@@ -514,8 +514,8 @@
 
   color: var(--color-text);
 
-  font-size: 0.74rem;
-  line-height: 1.35;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .privacy-note {
@@ -540,7 +540,7 @@
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -556,8 +556,8 @@
 
   color: var(--color-text-muted);
 
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.55;
 }
 
 .mission-entry__actions {
@@ -583,8 +583,8 @@
   background: transparent;
   color: var(--color-text-muted);
 
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-family: inherit;
+  font-size: 0.78rem;
   font-weight: 700;
 
   cursor: pointer;
@@ -650,7 +650,7 @@
   color: var(--color-accent);
 
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -659,7 +659,7 @@
   color: var(--color-text-muted);
 
   font-family: var(--font-mono);
-  font-size: 0.5rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.055em;
 }
@@ -669,7 +669,7 @@
 
   color: var(--color-text);
 
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 650;
   line-height: 1.25;
 }
@@ -679,15 +679,15 @@
 
   color: var(--color-text-muted);
 
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
 
-@media (max-width: 1080px) {
+@media (max-width: 900px) {
   .hero__layout {
     grid-template-columns: 1fr;
     gap: 1.8rem;

@@ -15,6 +15,12 @@ import {
 
 import { Auth } from './auth';
 
+export type MissionAttemptStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'submitted'
+  | 'reviewed';
+
 export interface MissionSummary {
   scenarioId: number;
   scenarioCode: string;
@@ -25,10 +31,12 @@ export interface MissionSummary {
   estimatedMinutes: number;
   evidenceCount: number;
   causeCount: number;
+  attemptStatus: MissionAttemptStatus;
 }
 
 export interface MissionListResponse {
   count: number;
+  completedCount: number;
   missions: MissionSummary[];
 }
 
@@ -68,61 +76,74 @@ export interface MissionDetailResponse {
 
 @Service()
 export class Missions {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(Auth);
+  private readonly http =
+    inject(HttpClient);
+
+  private readonly auth =
+    inject(Auth);
 
   private readonly missionsUrl =
     'http://localhost:5000/api/missions';
 
-  getMissions(): Observable<MissionListResponse> {
-    const headers = this.getAuthHeaders();
+  getMissions():
+    Observable<MissionListResponse> {
+    const headers =
+      this.getAuthHeaders();
 
     if (!headers) {
       return throwError(
-        () => new Error(
-          'Authentication is required to load missions.',
-        ),
+        () =>
+          new Error(
+            'Authentication is required to load missions.',
+          ),
       );
     }
 
-    return this.http.get<MissionListResponse>(
-      this.missionsUrl,
-      {
-        headers,
-      },
-    );
+    return this.http
+      .get<MissionListResponse>(
+        this.missionsUrl,
+        {
+          headers,
+        },
+      );
   }
 
   getMission(
     scenarioId: number,
   ): Observable<MissionDetailResponse> {
-    const headers = this.getAuthHeaders();
+    const headers =
+      this.getAuthHeaders();
 
     if (!headers) {
       return throwError(
-        () => new Error(
-          'Authentication is required to load this mission.',
-        ),
+        () =>
+          new Error(
+            'Authentication is required to load this mission.',
+          ),
       );
     }
 
-    return this.http.get<MissionDetailResponse>(
-      `${this.missionsUrl}/${scenarioId}`,
-      {
-        headers,
-      },
-    );
+    return this.http
+      .get<MissionDetailResponse>(
+        `${this.missionsUrl}/${scenarioId}`,
+        {
+          headers,
+        },
+      );
   }
 
-  private getAuthHeaders(): HttpHeaders | null {
-    const token = this.auth.getToken();
+  private getAuthHeaders():
+    HttpHeaders | null {
+    const token =
+      this.auth.getToken();
 
     if (!token) {
       return null;
     }
 
     return new HttpHeaders({
-      Authorization: `Bearer ${token}`,
+      Authorization:
+        `Bearer ${token}`,
     });
   }
 }
