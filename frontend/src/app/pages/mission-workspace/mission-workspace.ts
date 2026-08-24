@@ -1169,6 +1169,21 @@ export class MissionWorkspace implements OnInit, OnDestroy {
     this.supportCueTimer = null;
   }
 
+  difficultyLabel(
+    difficulty: MissionDifficulty,
+  ): string {
+    switch (difficulty) {
+      case 'friendly':
+        return 'Friendly';
+
+      case 'medium':
+        return 'Medium';
+
+      case 'high_intermediate':
+        return 'High / Intermediate';
+    }
+  }
+
   private supportCueDelayMs(
     difficulty: MissionDifficulty,
   ): number {
