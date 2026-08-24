@@ -1,0 +1,15 @@
+# Normalize text files for consistent Windows/Linux development.
+* text=auto
+
+# Source and deployment files use LF line endings.
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.scss text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+.env.example text eol=lf

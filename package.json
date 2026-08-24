@@ -1,0 +1,13 @@
+﻿{
+  "name": "firstcommit-mission-control",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack deployment orchestration for FirstCommit Engineering Mission Control",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "npm ci --include=dev --prefix frontend && npm run build --prefix frontend && npm ci --omit=dev --prefix backend",
+    "start": "cd backend && node src/server.js"
+  }
+}

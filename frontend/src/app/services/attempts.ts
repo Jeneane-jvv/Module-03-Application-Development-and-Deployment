@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.config';
 import {
   inject,
   Service,
@@ -209,7 +210,7 @@ export class Attempts {
     inject(Auth);
 
   private readonly attemptsUrl =
-    'http://localhost:5000/api/attempts';
+    API_BASE_URL + '/attempts';
 
   startAttempt(
     scenarioId: number,

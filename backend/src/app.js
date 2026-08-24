@@ -1,5 +1,6 @@
-const express = require('express');
-const cors = require('cors');
+﻿const express = require('express');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const {
@@ -14,21 +15,30 @@ const experienceRouter = require('./routes/experience');
 
 const app = express();
 
-if (!process.env.CORS_ORIGIN) {
-  throw new Error('Missing required environment variable: CORS_ORIGIN');
+const frontendBuildPath = path.resolve(
+  __dirname,
+  '../../frontend/dist/frontend/browser'
+);
+
+const frontendIndexPath = path.join(
+  frontendBuildPath,
+  'index.html'
+);
+
+const frontendBuildExists =
+  fs.existsSync(frontendIndexPath);
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  !frontendBuildExists
+) {
+  throw new Error(
+    `Angular production build not found: ${frontendIndexPath}`
+  );
 }
 
 // Reduce unnecessary framework information in HTTP responses.
 app.disable('x-powered-by');
-
-// Allow the Angular development application to call this API.
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
 
 // Accept JSON request bodies while limiting unnecessarily large payloads.
 app.use(
@@ -44,7 +54,7 @@ app.use('/api/reviewer', reviewerRouter);
 app.use('/api/experience', experienceRouter);
 
 // Lightweight application health check.
-// This proves Express is running; database readiness will be separate.
+// This proves Express is running; database readiness is separate.
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     service: 'FirstCommit Mission Control API',
@@ -69,6 +79,40 @@ app.get('/api/ready', async (req, res) => {
       database: 'unavailable',
     });
   }
+});
+
+// API requests must never fall through to the Angular SPA.
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    service: 'FirstCommit Mission Control API',
+    status: 'not_found',
+    message: 'API route not found.',
+  });
+});
+
+if (frontendBuildExists) {
+  // Serve the compiled Angular application.
+  app.use(
+    express.static(frontendBuildPath)
+  );
+
+  // Support Angular client-side routes and browser refreshes.
+  app.get('/{*splat}', (req, res, next) => {
+    // Missing static assets should remain genuine 404 responses.
+    if (path.extname(req.path)) {
+      return next();
+    }
+
+    return res.sendFile(frontendIndexPath);
+  });
+}
+
+// Final fallback for requests not handled above.
+app.use((req, res) => {
+  res.status(404).json({
+    service: 'FirstCommit',
+    status: 'not_found',
+  });
 });
 
 module.exports = app;

@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+﻿const { Pool } = require('pg');
 require('dotenv').config();
 
 const requiredDatabaseVariables = [
@@ -7,6 +7,7 @@ const requiredDatabaseVariables = [
   'PGDATABASE',
   'PGUSER',
   'PGPASSWORD',
+  'DATABASE_TLS_MODE',
 ];
 
 for (const variableName of requiredDatabaseVariables) {
@@ -17,12 +18,50 @@ for (const variableName of requiredDatabaseVariables) {
   }
 }
 
+const applicationEnvironment = process.env.NODE_ENV;
+
+if (!applicationEnvironment) {
+  throw new Error('Missing required environment variable: NODE_ENV');
+}
+
+const allowedTlsModes = new Set([
+  'disable',
+  'verify-full',
+]);
+
+const databaseTlsMode =
+  process.env.DATABASE_TLS_MODE;
+
+if (!allowedTlsModes.has(databaseTlsMode)) {
+  throw new Error(
+    'DATABASE_TLS_MODE must be either "disable" or "verify-full".'
+  );
+}
+
+if (
+  applicationEnvironment === 'production' &&
+  databaseTlsMode !== 'verify-full'
+) {
+  throw new Error(
+    'Production database connections must use DATABASE_TLS_MODE=verify-full.'
+  );
+}
+
+const databaseSsl =
+  databaseTlsMode === 'verify-full'
+    ? {
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2',
+      }
+    : false;
+
 const pool = new Pool({
   host: process.env.PGHOST,
   port: Number(process.env.PGPORT),
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
+  ssl: databaseSsl,
 
   max: 10,
   idleTimeoutMillis: 30000,

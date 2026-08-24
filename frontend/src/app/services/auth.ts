@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.config';
 import { HttpClient } from '@angular/common/http';
 import {
   computed,
@@ -30,7 +31,7 @@ export class Auth {
   private readonly http = inject(HttpClient);
 
   private readonly authUrl =
-    'http://localhost:5000/api/auth';
+    API_BASE_URL + '/auth';
 
   private readonly tokenState =
     signal<string | null>(null);

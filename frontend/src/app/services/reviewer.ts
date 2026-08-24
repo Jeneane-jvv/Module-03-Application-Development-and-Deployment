@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.config';
 import { inject, Service } from '@angular/core';
 import {
   HttpClient,
@@ -240,7 +241,7 @@ export class Reviewer {
     inject(Auth);
 
   private readonly reviewerUrl =
-    'http://localhost:5000/api/reviewer';
+    API_BASE_URL + '/reviewer';
 
   getSubmittedInvestigations():
     Observable<ReviewerInvestigationsResponse> {

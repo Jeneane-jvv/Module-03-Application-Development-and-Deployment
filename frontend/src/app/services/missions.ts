@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.config';
 import {
   inject,
   Service,
@@ -83,7 +84,7 @@ export class Missions {
     inject(Auth);
 
   private readonly missionsUrl =
-    'http://localhost:5000/api/missions';
+    API_BASE_URL + '/missions';
 
   getMissions():
     Observable<MissionListResponse> {

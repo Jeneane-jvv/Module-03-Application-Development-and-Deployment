@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/api.config';
 import {
   inject,
   Service,
@@ -102,7 +103,7 @@ export class Experience {
     inject(HttpClient);
 
   private readonly experienceUrl =
-    'http://localhost:5000/api/experience';
+    API_BASE_URL + '/experience';
 
   private readonly storageKey =
     'firstcommit_visitor_profile';
