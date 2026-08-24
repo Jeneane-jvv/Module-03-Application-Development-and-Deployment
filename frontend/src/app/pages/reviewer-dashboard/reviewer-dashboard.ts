@@ -8,6 +8,14 @@ import {
 } from '@angular/core';
 
 import {
+  Router,
+} from '@angular/router';
+
+import {
+  Auth,
+} from '../../services/auth';
+
+import {
   Reviewer,
   ReviewerInvestigationDetailResponse,
   ReviewerInvestigationSummary,
@@ -23,6 +31,12 @@ import {
 export class ReviewerDashboard implements OnInit {
   private readonly reviewerService =
     inject(Reviewer);
+
+  private readonly auth =
+    inject(Auth);
+
+  private readonly router =
+    inject(Router);
 
   @ViewChild('reviewDetail')
   private reviewDetail?: ElementRef<HTMLElement>;
@@ -87,6 +101,14 @@ export class ReviewerDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadInvestigations();
+  }
+
+  logout(): void {
+    this.auth.logout();
+
+    void this.router.navigate([
+      '/login',
+    ]);
   }
 
   openInvestigation(

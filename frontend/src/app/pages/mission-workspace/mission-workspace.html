@@ -80,6 +80,14 @@
               </div>
             </div>
           }
+
+          <button
+            class="workspace__logout"
+            type="button"
+            (click)="logout()"
+          >
+            Logout
+          </button>
         </div>
 
         @if (attemptError()) {

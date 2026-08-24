@@ -1,6 +1,6 @@
 <main class="reviewer-dashboard">
   <header class="reviewer-dashboard__header">
-    <div>
+    <div class="reviewer-dashboard__header-copy">
       <p class="reviewer-dashboard__eyebrow">
         FIRSTCOMMIT / REVIEWER WORKSPACE
       </p>
@@ -15,6 +15,14 @@
         recording reviewer feedback.
       </p>
     </div>
+
+    <button
+      class="reviewer-dashboard__logout"
+      type="button"
+      (click)="logout()"
+    >
+      Logout
+    </button>
   </header>
 
   @if (isLoading()) {

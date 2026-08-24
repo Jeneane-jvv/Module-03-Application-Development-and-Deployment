@@ -1,12 +1,20 @@
 import { API_BASE_URL } from '../config/api.config';
-import { HttpClient } from '@angular/common/http';
+
+import {
+  HttpClient,
+} from '@angular/common/http';
+
 import {
   computed,
   inject,
   Service,
   signal,
 } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+
+import {
+  Observable,
+  tap,
+} from 'rxjs';
 
 export interface LoginRequest {
   email: string;
@@ -28,7 +36,8 @@ export interface LoginResponse {
 
 @Service()
 export class Auth {
-  private readonly http = inject(HttpClient);
+  private readonly http =
+    inject(HttpClient);
 
   private readonly authUrl =
     API_BASE_URL + '/auth';
@@ -37,14 +46,18 @@ export class Auth {
     signal<string | null>(null);
 
   private readonly userState =
-    signal<AuthenticatedUser | null>(null);
+    signal<AuthenticatedUser | null>(
+      null,
+    );
 
   readonly currentUser =
     this.userState.asReadonly();
 
-  readonly isAuthenticated = computed(
-    () => this.tokenState() !== null,
-  );
+  readonly isAuthenticated =
+    computed(
+      () =>
+        this.tokenState() !== null,
+    );
 
   login(
     credentials: LoginRequest,
@@ -56,10 +69,20 @@ export class Auth {
       )
       .pipe(
         tap((response) => {
-          this.tokenState.set(response.token);
-          this.userState.set(response.user);
+          this.tokenState.set(
+            response.token,
+          );
+
+          this.userState.set(
+            response.user,
+          );
         }),
       );
+  }
+
+  logout(): void {
+    this.tokenState.set(null);
+    this.userState.set(null);
   }
 
   getToken(): string | null {

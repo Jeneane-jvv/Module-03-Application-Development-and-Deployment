@@ -15,6 +15,7 @@ import {
 
 import {
   ActivatedRoute,
+  Router,
   RouterLink,
 } from '@angular/router';
 
@@ -33,6 +34,10 @@ import {
   PersistedAttempt,
   RecordStepResponse,
 } from '../../services/attempts';
+
+import {
+  Auth,
+} from '../../services/auth';
 
 import {
   CauseOption,
@@ -63,6 +68,12 @@ import {
 export class MissionWorkspace implements OnInit, OnDestroy {
   private readonly route =
     inject(ActivatedRoute);
+
+  private readonly auth =
+    inject(Auth);
+
+  private readonly router =
+    inject(Router);
 
   private readonly missionsService =
     inject(Missions);
@@ -353,6 +364,14 @@ export class MissionWorkspace implements OnInit, OnDestroy {
   useMissionSupport(): void {
     this.supportCueVisible.set(false);
     this.scheduleSupportCue();
+  }
+
+  logout(): void {
+    this.auth.logout();
+
+    void this.router.navigate([
+      '/login',
+    ]);
   }
 
   startInvestigation(): void {

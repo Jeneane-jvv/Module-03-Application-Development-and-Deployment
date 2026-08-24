@@ -1,6 +1,6 @@
 <main class="dashboard">
   <header class="dashboard__header">
-    <div>
+    <div class="dashboard__header-copy">
       <p class="dashboard__eyebrow">
         FIRSTCOMMIT
       </p>
@@ -14,6 +14,14 @@
         Follow the reasoning.
       </p>
     </div>
+
+    <button
+      class="dashboard__logout"
+      type="button"
+      (click)="logout()"
+    >
+      Logout
+    </button>
   </header>
 
   <section

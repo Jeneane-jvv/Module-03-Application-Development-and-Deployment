@@ -141,6 +141,42 @@
   opacity: 0.55;
 }
 
+.workspace__logout {
+  margin-left: auto;
+
+  padding: 0.8rem 1rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+
+  background: rgba(30, 41, 59, 0.62);
+  color: var(--color-text);
+
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.workspace__logout:hover {
+  border-color: var(--color-accent);
+
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--color-accent);
+}
+
+.workspace__logout:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
 .attempt-status {
   display: flex;
   align-items: center;
@@ -1131,7 +1167,8 @@
     flex-direction: column;
   }
 
-  .workspace__primary-action {
+  .workspace__primary-action,
+  .workspace__logout {
     width: 100%;
   }
 

@@ -6,8 +6,13 @@ import {
 } from '@angular/core';
 
 import {
+  Router,
   RouterLink,
 } from '@angular/router';
+
+import {
+  Auth,
+} from '../../services/auth';
 
 import {
   MissionAttemptStatus,
@@ -31,6 +36,12 @@ export class LearnerDashboard
   implements OnInit {
   private readonly missionsService =
     inject(Missions);
+
+  private readonly auth =
+    inject(Auth);
+
+  private readonly router =
+    inject(Router);
 
   readonly missions =
     signal<MissionSummary[]>([]);
@@ -94,6 +105,13 @@ export class LearnerDashboard
       });
   }
 
+  logout(): void {
+    this.auth.logout();
+
+    void this.router.navigate([
+      '/login',
+    ]);
+  }
 
   difficultyLabel(
     difficulty: MissionDifficulty,
@@ -109,6 +127,7 @@ export class LearnerDashboard
         return 'High / Intermediate';
     }
   }
+
   missionActionLabel(
     status: MissionAttemptStatus,
   ): string {
