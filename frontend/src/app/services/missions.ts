@@ -1,4 +1,6 @@
-import { API_BASE_URL } from '../config/api.config';
+import {
+  API_BASE_URL,
+} from '../config/api.config';
 
 import {
   inject,
@@ -7,15 +9,11 @@ import {
 
 import {
   HttpClient,
-  HttpHeaders,
 } from '@angular/common/http';
 
 import {
   Observable,
-  throwError,
 } from 'rxjs';
-
-import { Auth } from './auth';
 
 import type {
   PersistedAttempt,
@@ -93,71 +91,23 @@ export class Missions {
   private readonly http =
     inject(HttpClient);
 
-  private readonly auth =
-    inject(Auth);
-
   private readonly missionsUrl =
     API_BASE_URL + '/missions';
 
   getMissions():
     Observable<MissionListResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to load missions.',
-          ),
-      );
-    }
-
     return this.http
       .get<MissionListResponse>(
         this.missionsUrl,
-        {
-          headers,
-        },
       );
   }
 
   getMission(
     scenarioId: number,
   ): Observable<MissionDetailResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to load this mission.',
-          ),
-      );
-    }
-
     return this.http
       .get<MissionDetailResponse>(
         `${this.missionsUrl}/${scenarioId}`,
-        {
-          headers,
-        },
       );
-  }
-
-  private getAuthHeaders():
-    HttpHeaders | null {
-    const token =
-      this.auth.getToken();
-
-    if (!token) {
-      return null;
-    }
-
-    return new HttpHeaders({
-      Authorization:
-        `Bearer ${token}`,
-    });
   }
 }

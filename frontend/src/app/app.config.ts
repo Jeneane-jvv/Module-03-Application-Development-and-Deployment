@@ -10,7 +10,12 @@ import {
 
 import {
   provideHttpClient,
+  withInterceptors,
 } from '@angular/common/http';
+
+import {
+  authInterceptor,
+} from './interceptors/auth-interceptor';
 
 import {
   routes,
@@ -27,6 +32,10 @@ export const appConfig: ApplicationConfig = {
       }),
     ),
 
-    provideHttpClient(),
+    provideHttpClient(
+      withInterceptors([
+        authInterceptor,
+      ]),
+    ),
   ],
 };

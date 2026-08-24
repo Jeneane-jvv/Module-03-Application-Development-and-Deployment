@@ -6,15 +6,11 @@ import {
 
 import {
   HttpClient,
-  HttpHeaders,
 } from '@angular/common/http';
 
 import {
   Observable,
-  throwError,
 } from 'rxjs';
-
-import { Auth } from './auth';
 
 export type AttemptStatus =
   | 'in_progress'
@@ -206,27 +202,12 @@ export class Attempts {
   private readonly http =
     inject(HttpClient);
 
-  private readonly auth =
-    inject(Auth);
-
   private readonly attemptsUrl =
     API_BASE_URL + '/attempts';
 
   startAttempt(
     scenarioId: number,
   ): Observable<StartAttemptResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to start an investigation.',
-          ),
-      );
-    }
-
     const body: StartAttemptRequest = {
       scenarioId,
     };
@@ -234,32 +215,14 @@ export class Attempts {
     return this.http.post<StartAttemptResponse>(
       this.attemptsUrl,
       body,
-      {
-        headers,
-      },
     );
   }
 
   getAttempt(
     attemptId: number,
   ): Observable<AttemptStateResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to load an investigation.',
-          ),
-      );
-    }
-
     return this.http.get<AttemptStateResponse>(
       `${this.attemptsUrl}/${attemptId}`,
-      {
-        headers,
-      },
     );
   }
 
@@ -267,24 +230,9 @@ export class Attempts {
     attemptId: number,
     request: RecordStepRequest,
   ): Observable<RecordStepResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to record an investigation step.',
-          ),
-      );
-    }
-
     return this.http.post<RecordStepResponse>(
       `${this.attemptsUrl}/${attemptId}/steps`,
       request,
-      {
-        headers,
-      },
     );
   }
 
@@ -293,24 +241,9 @@ export class Attempts {
     causeOptionId: number,
     request: AssessCauseRequest,
   ): Observable<AssessCauseResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to assess a competing cause.',
-          ),
-      );
-    }
-
     return this.http.put<AssessCauseResponse>(
       `${this.attemptsUrl}/${attemptId}/causes/${causeOptionId}`,
       request,
-      {
-        headers,
-      },
     );
   }
 
@@ -318,63 +251,18 @@ export class Attempts {
     attemptId: number,
     request: SaveConclusionRequest,
   ): Observable<SaveConclusionResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to save the final technical conclusion.',
-          ),
-      );
-    }
-
     return this.http.put<SaveConclusionResponse>(
       `${this.attemptsUrl}/${attemptId}/conclusion`,
       request,
-      {
-        headers,
-      },
     );
   }
 
   submitAttempt(
     attemptId: number,
   ): Observable<SubmitAttemptResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to submit an investigation for review.',
-          ),
-      );
-    }
-
     return this.http.post<SubmitAttemptResponse>(
       `${this.attemptsUrl}/${attemptId}/submit`,
       {},
-      {
-        headers,
-      },
     );
-  }
-
-  private getAuthHeaders():
-    HttpHeaders | null {
-    const token =
-      this.auth.getToken();
-
-    if (!token) {
-      return null;
-    }
-
-    return new HttpHeaders({
-      Authorization:
-        `Bearer ${token}`,
-    });
   }
 }

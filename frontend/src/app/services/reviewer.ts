@@ -2,14 +2,10 @@ import { API_BASE_URL } from '../config/api.config';
 import { inject, Service } from '@angular/core';
 import {
   HttpClient,
-  HttpHeaders,
 } from '@angular/common/http';
 import {
   Observable,
-  throwError,
 } from 'rxjs';
-
-import { Auth } from './auth';
 
 export type ReviewerAttemptStatus =
   | 'submitted'
@@ -237,54 +233,21 @@ export class Reviewer {
   private readonly http =
     inject(HttpClient);
 
-  private readonly auth =
-    inject(Auth);
-
   private readonly reviewerUrl =
     API_BASE_URL + '/reviewer';
 
   getSubmittedInvestigations():
     Observable<ReviewerInvestigationsResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to access reviewer investigations.',
-          ),
-      );
-    }
-
     return this.http.get<ReviewerInvestigationsResponse>(
       `${this.reviewerUrl}/attempts`,
-      {
-        headers,
-      },
     );
   }
 
   getInvestigation(
     attemptId: number,
   ): Observable<ReviewerInvestigationDetailResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to review an investigation.',
-          ),
-      );
-    }
-
     return this.http.get<ReviewerInvestigationDetailResponse>(
       `${this.reviewerUrl}/attempts/${attemptId}`,
-      {
-        headers,
-      },
     );
   }
 
@@ -292,39 +255,9 @@ export class Reviewer {
     attemptId: number,
     payload: ReviewerReviewPayload,
   ): Observable<SubmitReviewerReviewResponse> {
-    const headers =
-      this.getAuthHeaders();
-
-    if (!headers) {
-      return throwError(
-        () =>
-          new Error(
-            'Authentication is required to submit reviewer feedback.',
-          ),
-      );
-    }
-
     return this.http.post<SubmitReviewerReviewResponse>(
       `${this.reviewerUrl}/attempts/${attemptId}/review`,
       payload,
-      {
-        headers,
-      },
     );
-  }
-
-  private getAuthHeaders():
-    HttpHeaders | null {
-    const token =
-      this.auth.getToken();
-
-    if (!token) {
-      return null;
-    }
-
-    return new HttpHeaders({
-      Authorization:
-        `Bearer ${token}`,
-    });
   }
 }
