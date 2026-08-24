@@ -24,6 +24,7 @@ router.get('/', authenticate, async (req, res) => {
           s.title,
           s.summary,
           s.severity,
+          s.difficulty,
           s.affected_layer AS "affectedLayer",
           s.estimated_minutes AS "estimatedMinutes",
 
@@ -146,6 +147,7 @@ router.get(
               title,
               summary,
               severity,
+              difficulty,
               affected_layer AS "affectedLayer",
               estimated_minutes AS "estimatedMinutes"
 

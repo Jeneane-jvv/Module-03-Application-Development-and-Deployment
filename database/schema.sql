@@ -46,6 +46,9 @@ CREATE TABLE scenarios (
     severity VARCHAR(20) NOT NULL
         CHECK (severity IN ('low', 'medium', 'high', 'critical')),
 
+    difficulty VARCHAR(30) NOT NULL
+        CHECK (difficulty IN ('friendly', 'medium', 'high_intermediate')),
+
     affected_layer VARCHAR(100) NOT NULL,
 
     estimated_minutes SMALLINT

@@ -75,8 +75,8 @@
                 {{ mission.scenarioCode }}
               </span>
 
-              <span class="mission-card__severity">
-                {{ mission.severity }}
+              <span class="mission-card__difficulty">
+                {{ difficultyLabel(mission.difficulty) }}
               </span>
             </div>
 
@@ -96,6 +96,16 @@
 
                 <dd>
                   {{ mission.affectedLayer }}
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  Incident severity
+                </dt>
+
+                <dd>
+                  {{ mission.severity }}
                 </dd>
               </div>
 

@@ -10,6 +10,7 @@ INSERT INTO scenarios (
     title,
     summary,
     severity,
+    difficulty,
     affected_layer,
     estimated_minutes,
     is_published
@@ -18,8 +19,9 @@ VALUES
 (
     'FC-001',
     'The dashboard is online, but production data never arrives',
-    'The Angular interface loads successfully in the hosted environment, but the mission dashboard remains empty. Local development works correctly. The investigation must determine whether the failure originates in frontend configuration, API communication, CORS, deployment settings, or the data layer.',
+    'The FirstCommit dashboard opens successfully in the hosted environment, but no mission data appears. The same feature works correctly during local development. Use the available evidence to work out why the hosted application cannot load its mission data and identify the correct fix.',
     'medium',
+    'friendly',
     'Frontend / API / Deployment',
     20,
     TRUE
@@ -29,6 +31,7 @@ VALUES
     'Valid credentials work locally but fail after deployment',
     'Learners can authenticate successfully in the local environment, but the same valid credentials are rejected by the hosted application. The API is reachable and the database appears available, so the investigation must follow the authentication evidence before deciding on a probable cause.',
     'high',
+    'medium',
     'Authentication / API / Environment',
     25,
     TRUE
@@ -38,6 +41,7 @@ VALUES
     'Reviewer feedback fails even though the review queue loads',
     'A reviewer can sign in and open submitted investigations, but completing a review fails unexpectedly. The investigation must trace the request through Angular, JWT authorization, Express business rules and PostgreSQL state before recommending a correction.',
     'high',
+    'high_intermediate',
     'Authorization / API / Database',
     30,
     TRUE
@@ -60,7 +64,7 @@ SELECT
     'FC001-E01',
     'Initial Incident Report',
     'incident_report',
-    'The hosted Angular interface loads successfully and navigation works. The mission dashboard remains empty. The same application displays mission data correctly when Angular and the API are running locally.',
+    'The hosted FirstCommit interface loads successfully and navigation works, but the mission dashboard remains empty. The same application displays mission data correctly during local development.',
     1,
     0
 FROM scenarios
@@ -81,7 +85,7 @@ SELECT
     'FC001-E02',
     'Hosted Service Status',
     'environment',
-    'Frontend: ONLINE. Express API health endpoint: ONLINE. PostgreSQL readiness check: READY. No active deployment failure is reported by the hosting platform.',
+    'Frontend: ONLINE. API: ONLINE. Database: READY. The hosting platform reports no active deployment failure.',
     2,
     0
 FROM scenarios
@@ -102,7 +106,7 @@ SELECT
     'FC001-E03',
     'Browser Console',
     'browser_console',
-    'MissionService failed while loading missions. Browser console reports: TypeError: Failed to fetch. The Angular application itself continues running.',
+    'The mission-loading request failed. Browser console reports: TypeError: Failed to fetch. The Angular application itself continues running.',
     3,
     1
 FROM scenarios
@@ -123,7 +127,7 @@ SELECT
     'FC001-E04',
     'Network Request Inspection',
     'http_request',
-    'Hosted Angular origin: https://mission-control.example. Request attempted: GET http://localhost:5000/api/missions. Result: connection failed before an HTTP response was returned.',
+    'Hosted application: https://mission-control.example. The browser attempted GET http://localhost:5000/api/missions. The request failed before the hosted API returned a response.',
     4,
     2
 FROM scenarios
@@ -144,7 +148,7 @@ SELECT
     'FC001-E05',
     'Production Build Configuration',
     'deployment_log',
-    'The production Angular build completed successfully. Review of the deployed configuration shows that the API base URL was not replaced with the hosted Express API address and still resolves to the local development endpoint.',
+    'The production build completed successfully, but its API target still points to the local development address. In the hosted version, FirstCommit should use /api so requests go to the API running with the same hosted application.',
     5,
     3
 FROM scenarios
@@ -165,36 +169,36 @@ VALUES
 (
     (SELECT scenario_id FROM scenarios WHERE scenario_code = 'FC-001'),
     'FC001-C01',
-    'PostgreSQL is unavailable',
-    'The hosted API may be unable to retrieve mission data because the production database is offline or unreachable.',
+    'PostgreSQL database is unavailable',
+    'The hosted API may be unable to read mission data because the database is offline or unreachable.',
     1
 ),
 (
     (SELECT scenario_id FROM scenarios WHERE scenario_code = 'FC-001'),
     'FC001-C02',
-    'CORS is rejecting the Angular application',
-    'The Express API may be online but refusing requests from the hosted Angular origin because the production CORS configuration is incorrect.',
+    'CORS is blocking the browser request',
+    'CORS can block browser requests when the frontend and API use different addresses. Check whether the request actually reaches the hosted API before changing CORS settings.',
     2
 ),
 (
     (SELECT scenario_id FROM scenarios WHERE scenario_code = 'FC-001'),
     'FC001-C03',
     'The frontend is using the local API address in production',
-    'The deployed Angular build may still be configured to request data from localhost instead of the hosted Express API.',
+    'The hosted frontend may still be calling localhost:5000 instead of /api. In production, that would send the request to the wrong place.',
     3
 ),
 (
     (SELECT scenario_id FROM scenarios WHERE scenario_code = 'FC-001'),
     'FC001-C04',
-    'The missions API is returning no published scenarios',
-    'The request may reach the API successfully, but backend filtering or publication-state logic could be returning an empty mission list.',
+    'The API returns no published missions',
+    'The request may reach the API successfully, but filtering or publication rules could return an empty mission list.',
     4
 ),
 (
     (SELECT scenario_id FROM scenarios WHERE scenario_code = 'FC-001'),
     'FC001-C05',
-    'Angular fails while rendering the returned mission data',
-    'The API may return valid mission records, but a frontend component or data-mapping problem could prevent the response from appearing in the interface.',
+    'The frontend receives missions but does not display them',
+    'The API may return valid mission records, but a frontend display or data-mapping problem could stop them appearing.',
     5
 );-- ============================================================
 -- FC-002 Evidence

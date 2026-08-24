@@ -16,6 +16,11 @@ import {
 
 import { Auth } from './auth';
 
+export type MissionDifficulty =
+  | 'friendly'
+  | 'medium'
+  | 'high_intermediate';
+
 export type MissionAttemptStatus =
   | 'not_started'
   | 'in_progress'
@@ -28,6 +33,7 @@ export interface MissionSummary {
   title: string;
   summary: string;
   severity: string;
+  difficulty: MissionDifficulty;
   affectedLayer: string;
   estimatedMinutes: number;
   evidenceCount: number;
@@ -47,6 +53,7 @@ export interface MissionDetail {
   title: string;
   summary: string;
   severity: string;
+  difficulty: MissionDifficulty;
   affectedLayer: string;
   estimatedMinutes: number;
 }
