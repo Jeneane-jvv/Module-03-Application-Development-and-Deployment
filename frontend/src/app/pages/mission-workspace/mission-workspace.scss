@@ -1309,3 +1309,266 @@
     padding: 1.1rem;
   }
 }
+
+/* =========================================================
+   MISSION SUPPORT ACCESS + CONTEXTUAL CUE
+   ========================================================= */
+
+.mission-support-tools,
+.mission-support-tools__item {
+  scroll-margin-top: 2rem;
+}
+
+.mission-support-dock {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  bottom: auto;
+  z-index: 60;
+
+  width: fit-content;
+  max-width: min(420px, calc(100vw - 2rem));
+
+  overflow: hidden;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+
+  background: rgba(15, 23, 42, 0.96);
+
+  box-shadow:
+    0 18px 45px rgba(2, 6, 23, 0.28);
+}
+
+.mission-support-dock--attention {
+  width: min(420px, calc(100vw - 2rem));
+
+  border-color: rgba(6, 182, 212, 0.48);
+
+  box-shadow:
+    0 0 0 1px rgba(6, 182, 212, 0.08),
+    0 18px 45px rgba(2, 6, 23, 0.36);
+}
+
+.mission-support-dock__compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.mission-support-dock__compact:hover {
+  color: var(--color-accent);
+}
+
+.mission-support-dock__content {
+  padding: 1rem;
+}
+
+.mission-support-dock__eyebrow {
+  margin: 0 0 0.45rem;
+
+  color: var(--color-accent);
+
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.mission-support-dock h3 {
+  margin: 0;
+
+  color: var(--color-text);
+
+  font-size: 1.05rem;
+}
+
+.mission-support-dock__content > p:not(.mission-support-dock__eyebrow) {
+  margin: 0.55rem 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.mission-support-dock__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+
+  margin-top: 0.9rem;
+}
+
+.mission-support-dock__action,
+.mission-support-dock__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 40px;
+  padding: 0.6rem 0.8rem;
+
+  border-radius: 0.4rem;
+
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mission-support-dock__action {
+  text-decoration: none;
+}
+
+/* Mission Mentor: calm engineering blue/cyan */
+.mission-support-dock__action:first-of-type {
+  border: 1px solid rgba(6, 182, 212, 0.48);
+
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--color-accent);
+}
+
+.mission-support-dock__action:first-of-type:hover {
+  border-color: var(--color-accent);
+
+  background: rgba(6, 182, 212, 0.14);
+}
+
+/* Error Analyst: amber precision/debugging identity */
+.mission-support-dock__action:nth-of-type(2) {
+  border: 1px solid rgba(245, 158, 11, 0.48);
+
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--color-warning);
+}
+
+.mission-support-dock__action:nth-of-type(2):hover {
+  border-color: var(--color-warning);
+
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.mission-support-dock__dismiss {
+  border: 1px solid rgba(226, 232, 240, 0.52);
+
+  background: rgba(226, 232, 240, 0.06);
+  color: var(--color-text);
+
+  cursor: pointer;
+}
+
+.mission-support-dock__dismiss:hover {
+  border-color: rgba(248, 250, 252, 0.9);
+
+  background: rgba(248, 250, 252, 0.12);
+  color: var(--color-text);
+}
+
+.mission-support-dock__compact:focus-visible,
+.mission-support-dock__action:focus-visible,
+.mission-support-dock__dismiss:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .mission-support-dock,
+  .mission-support-dock--attention {
+    top: 0.75rem;
+    right: 0.75rem;
+    bottom: auto;
+    left: 0.75rem;
+
+    width: auto;
+    max-width: none;
+  }
+
+  .mission-support-dock__compact {
+    width: 100%;
+  }
+
+  .mission-support-dock__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   MISSION NAVIGATION
+   ========================================================= */
+
+.workspace-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  width: min(100%, var(--content-width));
+  margin: 2rem auto 0;
+}
+
+.workspace-navigation__back-link {
+  color: var(--color-text-muted);
+
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.workspace-navigation__back-link:hover {
+  color: var(--color-accent);
+}
+
+.workspace-navigation__back-link:focus-visible,
+.workspace-navigation__next-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.workspace-navigation__next-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.85rem 1.15rem;
+
+  border: 1px solid var(--color-accent);
+  border-radius: 0.45rem;
+
+  background: var(--color-accent);
+  color: var(--color-bg);
+  text-decoration: none;
+
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.workspace-navigation__next-link:hover {
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
+
+  transform: translateY(-2px);
+}
+
+@media (max-width: 600px) {
+  .workspace-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace-navigation__next-link {
+    width: 100%;
+  }
+}

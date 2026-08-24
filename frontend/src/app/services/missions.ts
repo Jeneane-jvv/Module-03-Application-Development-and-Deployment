@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../config/api.config';
+
 import {
   inject,
   Service,
@@ -15,6 +16,10 @@ import {
 } from 'rxjs';
 
 import { Auth } from './auth';
+
+import type {
+  PersistedAttempt,
+} from './attempts';
 
 export type MissionDifficulty =
   | 'friendly'
@@ -80,6 +85,7 @@ export interface MissionDetailResponse {
   mission: MissionDetail;
   availableEvidence: EvidenceItem[];
   competingCauses: CauseOption[];
+  existingAttempt: PersistedAttempt | null;
 }
 
 @Service()

@@ -75,7 +75,7 @@
 
                 <p class="attempt-status__value">
                   Attempt #{{ attempt.attemptId }}
-                  · {{ attempt.status }}
+                  | {{ attempt.status }}
                 </p>
               </div>
             </div>
@@ -211,6 +211,97 @@
         }
       </div>
     </section>
+
+    <!-- ================================================== -->
+    <!-- MISSION SUPPORT                                    -->
+    <!-- ================================================== -->
+
+    <div
+      id="mission-support-tools"
+      class="mission-support-tools"
+      aria-label="Mission support tools"
+    >
+      <div
+        id="mission-mentor-support"
+        class="mission-support-tools__item"
+      >
+        <app-mission-mentor
+          visitorRole="learner"
+        />
+      </div>
+
+      <div
+        id="error-analyst-support"
+        class="mission-support-tools__item"
+      >
+        <app-error-analyst
+          visitorRole="learner"
+        />
+      </div>
+    </div>
+
+    @if (currentAttempt(); as attempt) {
+      @if (attempt.status === 'in_progress') {
+        <aside
+          class="mission-support-dock"
+          [class.mission-support-dock--attention]="
+            supportCueVisible()
+          "
+          aria-label="Mission support"
+        >
+          @if (supportCueVisible()) {
+            <div class="mission-support-dock__content">
+              <p class="mission-support-dock__eyebrow">
+                MISSION SUPPORT
+              </p>
+
+              <h3>Need a hand?</h3>
+
+              <p>
+                Choose a reasoning nudge or help interpreting
+                a technical signal. You stay in control.
+              </p>
+
+              <div class="mission-support-dock__actions">
+                <a
+                  class="mission-support-dock__action"
+                  [routerLink]="[]"
+                  fragment="mission-mentor-support"
+                  (click)="useMissionSupport()"
+                >
+                  Ask Mission Mentor
+                </a>
+
+                <a
+                  class="mission-support-dock__action"
+                  [routerLink]="[]"
+                  fragment="error-analyst-support"
+                  (click)="useMissionSupport()"
+                >
+                  Ask Error Analyst
+                </a>
+
+                <button
+                  class="mission-support-dock__dismiss"
+                  type="button"
+                  (click)="dismissSupportCue()"
+                >
+                  I'm okay
+                </button>
+              </div>
+            </div>
+          } @else {
+            <a
+              class="mission-support-dock__compact"
+              [routerLink]="[]"
+              fragment="mission-support-tools"
+            >
+              Mission Support
+            </a>
+          }
+        </aside>
+      }
+    }
 
     <!-- ================================================== -->
     <!-- 03 / REASONING TRAIL                               -->
@@ -362,7 +453,7 @@
                     [ngValue]="evidence.evidenceId"
                   >
                     {{ evidence.evidenceCode }}
-                    — {{ evidence.title }}
+                    - {{ evidence.title }}
                   </option>
                 }
               </select>
@@ -1093,7 +1184,7 @@
 
             <p class="investigation-complete__progress">
               Attempt #{{ attempt.attemptId }}
-              · {{ attempt.status }}
+              | {{ attempt.status }}
             </p>
 
             @if (attempt.status === 'reviewed') {
@@ -1201,7 +1292,7 @@
 
               <p class="reviewer-feedback__meta">
                 Feedback record #{{ feedback.feedbackId }}
-                · Reviewed {{ formatSouthAfricaTimestamp(feedback.createdAt) }}
+                | Reviewed {{ formatSouthAfricaTimestamp(feedback.createdAt) }}
               </p>
             </article>
 
@@ -1231,5 +1322,39 @@
         </section>
       }
     }
+
+    <nav
+      class="workspace-navigation"
+      aria-label="Mission navigation"
+    >
+      <a
+        class="workspace-navigation__back-link"
+        routerLink="/learner"
+      >
+        ← All Missions
+      </a>
+
+      @if (
+        currentAttempt();
+        as attempt
+      ) {
+        @if (
+          (attempt.status === 'submitted' ||
+            attempt.status === 'reviewed') &&
+          nextMissionScenarioId();
+          as nextScenarioId
+        ) {
+          <a
+            class="workspace-navigation__next-link"
+            [routerLink]="[
+              '/learner/missions',
+              nextScenarioId
+            ]"
+          >
+            Next Mission →
+          </a>
+        }
+      }
+    </nav>
   }
 </main>

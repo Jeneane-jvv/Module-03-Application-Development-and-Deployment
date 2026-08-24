@@ -1,6 +1,7 @@
 import {
   Component,
   inject,
+  OnDestroy,
   OnInit,
   signal,
 } from '@angular/core';
@@ -12,7 +13,10 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { ActivatedRoute } from '@angular/router';
+import {
+  ActivatedRoute,
+  RouterLink,
+} from '@angular/router';
 
 import {
   AttemptStateResponse,
@@ -33,16 +37,30 @@ import {
 import {
   CauseOption,
   MissionDetailResponse,
+  MissionDifficulty,
   Missions,
 } from '../../services/missions';
 
+import {
+  MissionMentor,
+} from '../../components/mission-mentor/mission-mentor';
+
+import {
+  ErrorAnalyst,
+} from '../../components/error-analyst/error-analyst';
+
 @Component({
-  imports: [ReactiveFormsModule],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    MissionMentor,
+    ErrorAnalyst,
+  ],
   selector: 'app-mission-workspace',
   styleUrl: './mission-workspace.scss',
   templateUrl: './mission-workspace.html',
 })
-export class MissionWorkspace implements OnInit {
+export class MissionWorkspace implements OnInit, OnDestroy {
   private readonly route =
     inject(ActivatedRoute);
 
@@ -54,6 +72,11 @@ export class MissionWorkspace implements OnInit {
 
   readonly missionData =
     signal<MissionDetailResponse | null>(
+      null,
+    );
+
+  readonly nextMissionScenarioId =
+    signal<number | null>(
       null,
     );
 
@@ -181,6 +204,13 @@ export class MissionWorkspace implements OnInit {
       null,
     );
 
+  readonly supportCueVisible =
+    signal(false);
+
+  private supportCueTimer:
+    ReturnType<typeof setTimeout> | null =
+      null;
+
   readonly stepForm = new FormGroup({
     evidenceId:
       new FormControl<number | null>(
@@ -285,26 +315,44 @@ export class MissionWorkspace implements OnInit {
   });
 
   ngOnInit(): void {
-    const scenarioId = Number(
-      this.route.snapshot.paramMap.get(
-        'scenarioId',
-      ),
+    this.route.paramMap.subscribe(
+      (params) => {
+        const scenarioId = Number(
+          params.get('scenarioId'),
+        );
+
+        this.resetWorkspaceState();
+
+        if (
+          !Number.isInteger(scenarioId) ||
+          scenarioId <= 0
+        ) {
+          this.isLoading.set(false);
+
+          this.loadError.set(
+            'A valid mission ID is required.',
+          );
+
+          return;
+        }
+
+        this.loadMission(scenarioId);
+      },
     );
+  }
 
-    if (
-      !Number.isInteger(scenarioId) ||
-      scenarioId <= 0
-    ) {
-      this.isLoading.set(false);
+  ngOnDestroy(): void {
+    this.clearSupportCueTimer();
+  }
 
-      this.loadError.set(
-        'A valid mission ID is required.',
-      );
+  dismissSupportCue(): void {
+    this.supportCueVisible.set(false);
+    this.scheduleSupportCue();
+  }
 
-      return;
-    }
-
-    this.loadMission(scenarioId);
+  useMissionSupport(): void {
+    this.supportCueVisible.set(false);
+    this.scheduleSupportCue();
   }
 
   startInvestigation(): void {
@@ -472,6 +520,8 @@ export class MissionWorkspace implements OnInit {
               'Investigation step saved.',
             );
           }
+
+          this.scheduleSupportCue();
         },
 
         error: (error) => {
@@ -650,6 +700,8 @@ export class MissionWorkspace implements OnInit {
             assessment: null,
             reasoning: '',
           });
+
+          this.scheduleSupportCue();
         },
 
         error: (error) => {
@@ -789,6 +841,8 @@ export class MissionWorkspace implements OnInit {
           this.conclusionSuccess.set(
             'Final technical conclusion saved. You can continue reviewing and editing it before submission.',
           );
+
+          this.scheduleSupportCue();
         },
 
         error: (error) => {
@@ -904,6 +958,9 @@ export class MissionWorkspace implements OnInit {
           this.submitSuccess.set(
             'Investigation submitted for review. Learner editing is now locked.',
           );
+
+          this.clearSupportCueTimer();
+          this.supportCueVisible.set(false);
         },
 
         error: (error) => {
@@ -976,10 +1033,196 @@ export class MissionWorkspace implements OnInit {
     return (
       `${getPart('day')} ` +
       `${getPart('month')} ` +
-      `${getPart('year')} · ` +
+      `${getPart('year')} at ` +
       `${getPart('hour')}:` +
       `${getPart('minute')} SAST`
     );
+  }
+
+  private resetWorkspaceState(): void {
+    this.clearSupportCueTimer();
+    this.supportCueVisible.set(false);
+
+    this.missionData.set(null);
+    this.nextMissionScenarioId.set(null);
+    this.currentAttempt.set(null);
+
+    this.investigationSteps.set([]);
+    this.completedSteps.set(0);
+
+    this.evidenceProgress.set({
+      availableEvidenceCount: 0,
+      totalEvidenceCount: 0,
+      allEvidenceUnlocked: false,
+    });
+
+    this.newlyUnlockedEvidence.set([]);
+
+    this.causeAssessments.set([]);
+
+    this.causeProgress.set({
+      assessedCauseCount: 0,
+      totalCauseCount: 0,
+      allCausesAssessed: false,
+    });
+
+    this.selectedCause.set(null);
+
+    this.conclusion.set({
+      probableRootCause: null,
+      finalReasoning: null,
+      recommendedAction: null,
+    });
+
+    this.conclusionProgress.set({
+      isConclusionComplete: false,
+    });
+
+    this.reviewerFeedback.set(null);
+
+    this.isLoading.set(true);
+    this.isStartingAttempt.set(false);
+    this.isSavingStep.set(false);
+    this.isSavingCause.set(false);
+    this.isSavingConclusion.set(false);
+    this.isSubmittingAttempt.set(false);
+    this.submissionConfirmed.set(false);
+
+    this.loadError.set(null);
+    this.attemptError.set(null);
+    this.stepError.set(null);
+    this.stepSuccess.set(null);
+    this.causeError.set(null);
+    this.causeSuccess.set(null);
+    this.conclusionError.set(null);
+    this.conclusionSuccess.set(null);
+    this.submitError.set(null);
+    this.submitSuccess.set(null);
+
+    this.stepForm.reset({
+      evidenceId: null,
+      observation: '',
+      nextAction: '',
+      reasoning: '',
+    });
+
+    this.causeForm.reset({
+      assessment: null,
+      reasoning: '',
+    });
+
+    this.conclusionForm.reset({
+      probableRootCause: '',
+      finalReasoning: '',
+      recommendedAction: '',
+    });
+  }
+
+  private scheduleSupportCue(): void {
+    this.clearSupportCueTimer();
+    this.supportCueVisible.set(false);
+
+    const attempt =
+      this.currentAttempt();
+
+    const mission =
+      this.missionData()?.mission;
+
+    if (
+      !attempt ||
+      !mission ||
+      attempt.status !== 'in_progress'
+    ) {
+      return;
+    }
+
+    const delayMs =
+      this.supportCueDelayMs(
+        mission.difficulty,
+      );
+
+    this.supportCueTimer =
+      setTimeout(
+        () => {
+          this.supportCueTimer = null;
+
+          if (
+            this.currentAttempt()?.status ===
+            'in_progress'
+          ) {
+            this.supportCueVisible.set(true);
+          }
+        },
+        delayMs,
+      );
+  }
+
+  private clearSupportCueTimer(): void {
+    if (this.supportCueTimer === null) {
+      return;
+    }
+
+    clearTimeout(
+      this.supportCueTimer,
+    );
+
+    this.supportCueTimer = null;
+  }
+
+  private supportCueDelayMs(
+    difficulty: MissionDifficulty,
+  ): number {
+    switch (difficulty) {
+      case 'friendly':
+        return 2 * 60 * 1000;
+
+      case 'medium':
+        return 3 * 60 * 1000;
+
+      case 'high_intermediate':
+        return 4 * 60 * 1000;
+    }
+  }
+
+  private loadNextMissionScenarioId(
+    scenarioId: number,
+  ): void {
+    this.missionsService
+      .getMissions()
+      .subscribe({
+        next: (response) => {
+          const currentIndex =
+            response.missions.findIndex(
+              (mission) =>
+                mission.scenarioId ===
+                scenarioId,
+            );
+
+          if (
+            currentIndex < 0 ||
+            currentIndex >=
+              response.missions.length - 1
+          ) {
+            this.nextMissionScenarioId.set(
+              null,
+            );
+
+            return;
+          }
+
+          this.nextMissionScenarioId.set(
+            response.missions[
+              currentIndex + 1
+            ].scenarioId,
+          );
+        },
+
+        error: () => {
+          this.nextMissionScenarioId.set(
+            null,
+          );
+        },
+      });
   }
 
   private loadMission(
@@ -990,6 +1233,23 @@ export class MissionWorkspace implements OnInit {
       .subscribe({
         next: (response) => {
           this.missionData.set(response);
+          this.loadNextMissionScenarioId(
+            scenarioId,
+          );
+
+          if (response.existingAttempt) {
+            this.currentAttempt.set(
+              response.existingAttempt,
+            );
+
+            this.restoreAttemptState(
+              response.existingAttempt
+                .attemptId,
+            );
+
+            return;
+          }
+
           this.isLoading.set(false);
         },
 
@@ -1017,6 +1277,7 @@ export class MissionWorkspace implements OnInit {
           this.isStartingAttempt.set(
             false,
           );
+          this.isLoading.set(false);
 
           console.log({
             restoredAttempt:
@@ -1060,6 +1321,7 @@ export class MissionWorkspace implements OnInit {
           this.isStartingAttempt.set(
             false,
           );
+          this.isLoading.set(false);
 
           this.attemptError.set(
             'The investigation state could not be restored.',
@@ -1139,6 +1401,8 @@ export class MissionWorkspace implements OnInit {
       availableEvidence:
         state.availableEvidence,
     });
+
+    this.scheduleSupportCue();
   }
 
   private applyStepResponse(

@@ -111,9 +111,14 @@ router.get('/', authenticate, async (req, res) => {
 
 // ============================================================
 // GET /api/missions/:scenarioId
-// Returns one published mission together with the evidence
-// available when the investigation begins and its active
-// competing causes.
+// Returns one published mission together with:
+// - evidence available when the investigation begins
+// - active competing causes
+// - the authenticated learner's existing mission attempt,
+//   when one already exists
+//
+// This route is read-only. Loading a mission must not create or
+// mutate an investigation attempt.
 // ============================================================
 
 router.get(
@@ -174,6 +179,50 @@ router.get(
           });
       }
 
+      const existingAttemptResult =
+        await pool.query(
+          `
+            SELECT
+              attempt_id::int AS "attemptId",
+              learner_id::int AS "learnerId",
+              scenario_id::int AS "scenarioId",
+              status,
+              started_at AS "startedAt",
+              submitted_at AS "submittedAt",
+              reviewed_at AS "reviewedAt"
+
+            FROM attempts
+
+            WHERE learner_id = $1
+              AND scenario_id = $2
+              AND status IN (
+                'in_progress',
+                'submitted',
+                'reviewed'
+              )
+
+            ORDER BY
+              CASE status
+                WHEN 'in_progress' THEN 1
+                WHEN 'submitted' THEN 2
+                WHEN 'reviewed' THEN 3
+                ELSE 4
+              END,
+              COALESCE(
+                reviewed_at,
+                submitted_at,
+                started_at
+              ) DESC,
+              attempt_id DESC
+
+            LIMIT 1;
+          `,
+          [
+            req.user.userId,
+            scenarioId,
+          ],
+        );
+
       const evidenceResult =
         await pool.query(
           `
@@ -229,6 +278,10 @@ router.get(
 
         competingCauses:
           causesResult.rows,
+
+        existingAttempt:
+          existingAttemptResult.rows[0] ??
+          null,
       });
     } catch (error) {
       console.error(
