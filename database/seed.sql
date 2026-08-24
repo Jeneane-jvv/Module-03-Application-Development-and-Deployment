@@ -5,6 +5,8 @@
 -- These scenarios are fictional engineering incidents created specifically
 -- for the FirstCommit portfolio application.
 
+BEGIN;
+
 INSERT INTO scenarios (
     scenario_code,
     title,
@@ -509,3 +511,5 @@ VALUES
     'The feedback insert may succeed initially, but a later database operation could fail and cause the complete review transaction to roll back.',
     5
 );
+
+COMMIT;

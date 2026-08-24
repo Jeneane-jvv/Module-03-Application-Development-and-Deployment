@@ -9,6 +9,8 @@
 -- Visitors who do not consent are not persisted.
 -- ============================================================
 
+BEGIN;
+
 CREATE TABLE visitor_sessions (
   visitor_session_id BIGINT
     GENERATED ALWAYS AS IDENTITY,
@@ -125,3 +127,5 @@ CREATE INDEX idx_visitor_events_scenario
   ON visitor_events (
     scenario_id
   );
+
+COMMIT;

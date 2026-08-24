@@ -5,6 +5,8 @@
 -- This schema evolves the relational design demonstrated in Module 02
 -- into the persistent data layer for a full-stack Angular + Express application.
 
+BEGIN;
+
 CREATE TABLE users (
     user_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
@@ -431,3 +433,5 @@ ALTER TABLE attempts
             AND reviewed_at >= submitted_at
         )
     );
+
+COMMIT;
