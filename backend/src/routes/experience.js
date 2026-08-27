@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 
 const {
@@ -5,6 +6,27 @@ const {
 } = require('../config/database');
 
 const router = express.Router();
+
+const VISITOR_CAPABILITY_HEADER =
+  'x-visitor-capability';
+
+function createVisitorCapability() {
+  return crypto
+    .randomBytes(32)
+    .toString('hex');
+}
+
+function hashVisitorCapability(
+  visitorCapability,
+) {
+  return crypto
+    .createHash('sha256')
+    .update(
+      visitorCapability,
+      'utf8',
+    )
+    .digest('hex');
+}
 
 const VISITOR_ROLES = new Set([
   'learner',
@@ -198,19 +220,29 @@ router.post(
       // Create the visitor session.
       // ------------------------------------------------------
 
+      const visitorCapability =
+        createVisitorCapability();
+
+      const visitorCapabilityHash =
+        hashVisitorCapability(
+          visitorCapability,
+        );
+
       const sessionResult =
         await client.query(
           `
             INSERT INTO visitor_sessions (
               display_name,
               visitor_role,
-              consent_given
+              consent_given,
+              visitor_capability_hash
             )
 
             VALUES (
               $1,
               $2,
-              TRUE
+              TRUE,
+              $3
             )
 
             RETURNING
@@ -238,6 +270,7 @@ router.post(
           [
             displayName,
             visitorRole,
+            visitorCapabilityHash,
           ],
         );
 
@@ -251,6 +284,8 @@ router.post(
       return res.status(201).json({
         persisted:
           true,
+
+        visitorCapability,
 
         session,
       });
@@ -293,7 +328,7 @@ router.post(
 // - an optional valid FirstCommit scenario ID;
 // - small, whitelisted metadata.
 //
-// Arbitrary prompts, passwords, tokens, IP addresses, browser
+// Arbitrary prompts, passwords, authentication tokens, IP addresses, browser
 // fingerprints, and unrestricted payloads are not accepted.
 // ============================================================
 
@@ -319,6 +354,32 @@ router.post(
           'A valid visitor session ID is required.',
       });
     }
+
+    const visitorCapability =
+      req.get(
+        VISITOR_CAPABILITY_HEADER,
+      );
+
+    if (
+      typeof visitorCapability !==
+        'string' ||
+      !/^[0-9a-f]{64}$/.test(
+        visitorCapability,
+      )
+    ) {
+      return res.status(401).json({
+        error:
+          'visitor_session_access_denied',
+
+        message:
+          'Visitor session access could not be verified.',
+      });
+    }
+
+    const visitorCapabilityHash =
+      hashVisitorCapability(
+        visitorCapability,
+      );
 
     const eventType =
       req.body?.eventType;
@@ -424,11 +485,13 @@ router.post(
             FROM visitor_sessions
 
             WHERE visitor_session_id = $1
+              AND visitor_capability_hash = $2
 
             FOR UPDATE;
           `,
           [
             visitorSessionId,
+            visitorCapabilityHash,
           ],
         );
 
@@ -439,12 +502,12 @@ router.post(
           'ROLLBACK',
         );
 
-        return res.status(404).json({
+        return res.status(401).json({
           error:
-            'visitor_session_not_found',
+            'visitor_session_access_denied',
 
           message:
-            'The visitor session could not be found.',
+            'Visitor session access could not be verified.',
         });
       }
 

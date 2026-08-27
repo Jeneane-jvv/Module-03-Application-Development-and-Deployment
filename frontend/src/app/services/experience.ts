@@ -36,6 +36,7 @@ export interface VisitorProfile {
   consentGiven: boolean;
   persisted: boolean;
   visitorSessionId: number | null;
+  visitorCapability: string | null;
   startedAt: string;
 }
 
@@ -57,6 +58,7 @@ export interface CreateVisitorSessionRequest {
 
 export interface CreateVisitorSessionResponse {
   persisted: true;
+  visitorCapability: string;
   session: VisitorSession;
 }
 
@@ -132,6 +134,9 @@ export class Experience {
         visitorSessionId:
           null,
 
+        visitorCapability:
+          null,
+
         startedAt:
           new Date().toISOString(),
       };
@@ -183,6 +188,9 @@ export class Experience {
                 response.session
                   .visitorSessionId,
 
+              visitorCapability:
+                response.visitorCapability,
+
               startedAt:
                 response.session
                   .startedAt,
@@ -209,7 +217,9 @@ export class Experience {
       !profile ||
       !profile.persisted ||
       !profile.consentGiven ||
-      profile.visitorSessionId === null
+      profile.visitorSessionId === null ||
+      typeof profile.visitorCapability !==
+        'string'
     ) {
       return of(null);
     }
@@ -225,6 +235,12 @@ export class Experience {
 
         metadata:
           request.metadata ?? {},
+      },
+      {
+        headers: {
+          'X-Visitor-Capability':
+            profile.visitorCapability,
+        },
       },
     );
   }

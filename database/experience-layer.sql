@@ -21,6 +21,7 @@ CREATE TABLE visitor_sessions (
 
   consent_given BOOLEAN NOT NULL,
 
+  visitor_capability_hash VARCHAR(64) NOT NULL,
   started_at TIMESTAMP WITH TIME ZONE
     NOT NULL
     DEFAULT CURRENT_TIMESTAMP,
@@ -33,6 +34,14 @@ CREATE TABLE visitor_sessions (
 
   CONSTRAINT visitor_sessions_pkey
     PRIMARY KEY (visitor_session_id),
+
+  CONSTRAINT uq_visitor_session_capability_hash
+    UNIQUE (visitor_capability_hash),
+
+  CONSTRAINT ck_visitor_session_capability_hash_format
+    CHECK (
+      visitor_capability_hash ~ '^[0-9a-f]{64}$'
+    ),
 
   CONSTRAINT ck_visitor_display_name_not_blank
     CHECK (
