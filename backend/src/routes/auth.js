@@ -46,7 +46,8 @@ router.post('/login', async (req, res) => {
           email,
           password_hash AS "passwordHash",
           role,
-          is_active AS "isActive"
+          is_active AS "isActive",
+          auth_version AS "authVersion"
 
         FROM users
 
@@ -88,6 +89,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       {
         role: user.role,
+        authVersion: user.authVersion,
       },
       process.env.JWT_SECRET,
       {
@@ -117,6 +119,37 @@ router.post('/login', async (req, res) => {
     });
   }
 });
+
+// POST /api/auth/logout
+// Revokes the current user's issued JWTs by advancing the
+// server-side authentication version.
+
+router.post('/logout', authenticate, async (req, res) => {
+  try {
+    await pool.query(
+      `
+        UPDATE users
+
+        SET
+          auth_version = auth_version + 1,
+          updated_at = CURRENT_TIMESTAMP
+
+        WHERE user_id = $1;
+      `,
+      [req.user.userId]
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Logout failed:', error.message);
+
+    res.status(500).json({
+      error: 'logout_service_unavailable',
+      message: 'Logout could not be completed.',
+    });
+  }
+});
+
 // GET /api/auth/me
 // Returns the currently authenticated FirstCommit user.
 

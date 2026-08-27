@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 
 import {
+  finalize,
   Observable,
   tap,
 } from 'rxjs';
@@ -83,6 +84,19 @@ export class Auth {
   logout(): void {
     this.tokenState.set(null);
     this.userState.set(null);
+  }
+
+  logoutFromServer(): Observable<void> {
+    return this.http
+      .post<void>(
+        `${this.authUrl}/logout`,
+        {},
+      )
+      .pipe(
+        finalize(() => {
+          this.logout();
+        }),
+      );
   }
 
   getToken(): string | null {

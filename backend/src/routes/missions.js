@@ -15,6 +15,13 @@ const router = express.Router();
 // ============================================================
 
 router.get('/', authenticate, async (req, res) => {
+  if (req.user.role !== 'learner') {
+    return res.status(403).json({
+      error: 'learner_access_required',
+      message: 'Only learners can access missions.',
+    });
+  }
+
   try {
     const result = await pool.query(
       `
@@ -125,6 +132,13 @@ router.get(
   '/:scenarioId',
   authenticate,
   async (req, res) => {
+    if (req.user.role !== 'learner') {
+      return res.status(403).json({
+        error: 'learner_access_required',
+        message: 'Only learners can access mission details.',
+      });
+    }
+
     const scenarioId =
       Number(req.params.scenarioId);
 

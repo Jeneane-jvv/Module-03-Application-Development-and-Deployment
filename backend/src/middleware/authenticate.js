@@ -57,7 +57,8 @@ async function authenticate(req, res, next) {
           user_id::int AS "userId",
           full_name AS "fullName",
           email,
-          role
+          role,
+          auth_version AS "authVersion"
 
         FROM users
 
@@ -79,6 +80,16 @@ async function authenticate(req, res, next) {
     const user = result.rows[0];
 
     if (payload.role !== user.role) {
+      return res.status(401).json({
+        error: 'invalid_token',
+        message: 'The authentication token is invalid.',
+      });
+    }
+
+    if (
+      !Number.isInteger(payload.authVersion) ||
+      payload.authVersion !== user.authVersion
+    ) {
       return res.status(401).json({
         error: 'invalid_token',
         message: 'The authentication token is invalid.',
