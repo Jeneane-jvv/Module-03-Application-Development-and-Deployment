@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -64,13 +64,12 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/ready', async (req, res) => {
   try {
-    const connection = await testDatabaseConnection();
+    await testDatabaseConnection();
 
     res.status(200).json({
       service: 'FirstCommit Mission Control API',
       status: 'ready',
-      database: connection.database_name,
-      databaseUser: connection.database_user,
+      database: 'available',
     });
   } catch (error) {
     res.status(503).json({
