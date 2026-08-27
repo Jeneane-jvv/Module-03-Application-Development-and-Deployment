@@ -104,11 +104,20 @@ export class ReviewerDashboard implements OnInit {
   }
 
   logout(): void {
-    this.auth.logout();
-
-    void this.router.navigate([
-      '/login',
-    ]);
+    this.auth
+      .logoutFromServer()
+      .subscribe({
+        next: () => {
+          void this.router.navigate([
+            '/login',
+          ]);
+        },
+        error: () => {
+          void this.router.navigate([
+            '/login',
+          ]);
+        },
+      });
   }
 
   openInvestigation(
@@ -257,6 +266,58 @@ export class ReviewerDashboard implements OnInit {
     );
 
     this.reviewError.set(null);
+  }
+
+  formatSouthAfricaTimestamp(
+    value: string | null | undefined,
+  ): string {
+    if (!value) {
+      return 'Not recorded';
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime(),
+      )
+    ) {
+      return value;
+    }
+
+    const parts =
+      new Intl.DateTimeFormat(
+        'en-GB',
+        {
+          timeZone:
+            'Africa/Johannesburg',
+
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        },
+      ).formatToParts(date);
+
+    const getPart = (
+      type: string,
+    ): string =>
+      parts.find(
+        (part) =>
+          part.type === type,
+      )?.value ?? '';
+
+    return (
+      `${getPart('day')} ` +
+      `${getPart('month')} ` +
+      `${getPart('year')} at ` +
+      `${getPart('hour')}:` +
+      `${getPart('minute')} SAST`
+    );
   }
 
   updateReviewConfirmation(

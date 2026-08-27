@@ -1104,6 +1104,12 @@
               <input
                 #submissionConfirmation
                 type="checkbox"
+                [checked]="submissionConfirmed()"
+                (change)="
+                  submissionConfirmed.set(
+                    submissionConfirmation.checked
+                  )
+                "
               />
 
               <span>
@@ -1125,7 +1131,7 @@
               class="workspace__primary-action"
               type="button"
               [disabled]="
-                !submissionConfirmation.checked ||
+                !submissionConfirmed() ||
                 isSubmittingAttempt()
               "
               (click)="submitForReview()"
@@ -1144,29 +1150,31 @@
               </p>
             </div>
 
-            @if (!evidenceProgress().allEvidenceUnlocked) {
-              <p
-                class="reasoning-form__message reasoning-form__message--error"
-              >
-                Evidence investigation is incomplete.
-              </p>
-            }
+            <div class="submission-readiness__messages">
+              @if (!evidenceProgress().allEvidenceUnlocked) {
+                <p
+                  class="reasoning-form__message reasoning-form__message--error submission-readiness__message"
+                >
+                  Evidence investigation is incomplete.
+                </p>
+              }
 
-            @if (!causeProgress().allCausesAssessed) {
-              <p
-                class="reasoning-form__message reasoning-form__message--error"
-              >
-                Cause assessment is incomplete.
-              </p>
-            }
+              @if (!causeProgress().allCausesAssessed) {
+                <p
+                  class="reasoning-form__message reasoning-form__message--error submission-readiness__message"
+                >
+                  Cause assessment is incomplete.
+                </p>
+              }
 
-            @if (!conclusionProgress().isConclusionComplete) {
-              <p
-                class="reasoning-form__message reasoning-form__message--error"
-              >
-                Final technical conclusion is incomplete.
-              </p>
-            }
+              @if (!conclusionProgress().isConclusionComplete) {
+                <p
+                  class="reasoning-form__message reasoning-form__message--error submission-readiness__message"
+                >
+                  Final technical conclusion is incomplete.
+                </p>
+              }
+            </div>
           }
         } @else {
           <div

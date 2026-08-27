@@ -614,6 +614,20 @@
   color: var(--color-accent);
 }
 
+.submission-readiness__messages {
+  display: inline-grid;
+  gap: 0.55rem;
+  max-width: 100%;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.submission-readiness__message {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  box-sizing: border-box;
+}
+
 /* =========================================================
    INVESTIGATION COMPLETE
    ========================================================= */
@@ -1354,6 +1368,9 @@
 .mission-support-tools,
 .mission-support-tools__item {
   scroll-margin-top: 2rem;
+}
+.mission-support-tools {
+  margin-top: 1.5rem;
 }
 
 .mission-support-dock {

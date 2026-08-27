@@ -367,11 +367,20 @@ export class MissionWorkspace implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.auth.logout();
-
-    void this.router.navigate([
-      '/login',
-    ]);
+    this.auth
+      .logoutFromServer()
+      .subscribe({
+        next: () => {
+          void this.router.navigate([
+            '/login',
+          ]);
+        },
+        error: () => {
+          void this.router.navigate([
+            '/login',
+          ]);
+        },
+      });
   }
 
   startInvestigation(): void {

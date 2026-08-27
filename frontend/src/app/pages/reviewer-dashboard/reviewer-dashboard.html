@@ -104,7 +104,7 @@
 
                 <span>
                   Submitted
-                  {{ investigation.submittedAt }}
+                  {{ formatSouthAfricaTimestamp(investigation.submittedAt) }}
                 </span>
               </div>
 
@@ -481,7 +481,7 @@
 
             @if (review.attempt.reviewedAt) {
               <p>
-                Reviewed {{ review.attempt.reviewedAt }}
+                Reviewed {{ formatSouthAfricaTimestamp(review.attempt.reviewedAt) }}
               </p>
             }
           </div>
