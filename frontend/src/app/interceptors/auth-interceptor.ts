@@ -1,4 +1,4 @@
-import {
+﻿import {
   HttpErrorResponse,
   HttpInterceptorFn,
 } from '@angular/common/http';
@@ -33,9 +33,6 @@ export const authInterceptor:
       const router =
         inject(Router);
 
-      const token =
-        auth.getToken();
-
       const isFirstCommitApiRequest =
         request.url.startsWith(
           API_BASE_URL,
@@ -47,23 +44,12 @@ export const authInterceptor:
 
       if (
         !isFirstCommitApiRequest ||
-        isLoginRequest ||
-        !token
+        isLoginRequest
       ) {
         return next(request);
       }
 
-      const authenticatedRequest =
-        request.clone({
-          setHeaders: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        });
-
-      return next(
-        authenticatedRequest,
-      ).pipe(
+      return next(request).pipe(
         catchError(
           (error: unknown) => {
             if (

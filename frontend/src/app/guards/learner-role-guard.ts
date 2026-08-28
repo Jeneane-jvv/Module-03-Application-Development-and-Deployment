@@ -1,24 +1,44 @@
-import { inject } from '@angular/core';
+﻿import { inject } from '@angular/core';
+
 import {
   CanActivateFn,
   Router,
 } from '@angular/router';
 
+import {
+  map,
+} from 'rxjs';
+
 import { Auth } from '../services/auth';
 
-export const learnerRoleGuard: CanActivateFn = () => {
-  const auth = inject(Auth);
-  const router = inject(Router);
+export const learnerRoleGuard:
+  CanActivateFn = () => {
+    const auth = inject(Auth);
+    const router = inject(Router);
 
-  const currentUser = auth.currentUser();
+    return auth
+      .restoreSession()
+      .pipe(
+        map((authenticated) => {
+          if (!authenticated) {
+            return router.createUrlTree([
+              '/login',
+            ]);
+          }
 
-  if (!currentUser) {
-    return router.createUrlTree(['/login']);
-  }
+          const currentUser =
+            auth.currentUser();
 
-  if (currentUser.role === 'learner') {
-    return true;
-  }
+          if (
+            currentUser?.role ===
+            'learner'
+          ) {
+            return true;
+          }
 
-  return router.createUrlTree(['/']);
-};
+          return router.createUrlTree([
+            '/',
+          ]);
+        }),
+      );
+  };

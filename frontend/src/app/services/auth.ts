@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/api.config';
+﻿import { API_BASE_URL } from '../config/api.config';
 
 import {
   HttpClient,
@@ -12,8 +12,12 @@ import {
 } from '@angular/core';
 
 import {
+  catchError,
   finalize,
+  map,
   Observable,
+  of,
+  shareReplay,
   tap,
 } from 'rxjs';
 
@@ -30,8 +34,11 @@ export interface AuthenticatedUser {
 }
 
 export interface LoginResponse {
-  token: string;
   expiresIn: string;
+  user: AuthenticatedUser;
+}
+
+interface SessionResponse {
   user: AuthenticatedUser;
 }
 
@@ -43,13 +50,16 @@ export class Auth {
   private readonly authUrl =
     API_BASE_URL + '/auth';
 
-  private readonly tokenState =
-    signal<string | null>(null);
-
   private readonly userState =
     signal<AuthenticatedUser | null>(
       null,
     );
+
+  private sessionChecked = false;
+
+  private sessionRestoreRequest:
+    Observable<boolean> | null =
+      null;
 
   readonly currentUser =
     this.userState.asReadonly();
@@ -57,7 +67,7 @@ export class Auth {
   readonly isAuthenticated =
     computed(
       () =>
-        this.tokenState() !== null,
+        this.userState() !== null,
     );
 
   login(
@@ -70,23 +80,78 @@ export class Auth {
       )
       .pipe(
         tap((response) => {
-          this.tokenState.set(
-            response.token,
-          );
-
           this.userState.set(
             response.user,
           );
+
+          this.sessionChecked = true;
         }),
       );
   }
 
-  logout(): void {
-    this.tokenState.set(null);
-    this.userState.set(null);
+  restoreSession():
+    Observable<boolean> {
+    if (this.userState() !== null) {
+      this.sessionChecked = true;
+
+      return of(true);
+    }
+
+    if (this.sessionChecked) {
+      return of(false);
+    }
+
+    if (this.sessionRestoreRequest) {
+      return this.sessionRestoreRequest;
+    }
+
+    const restoreRequest =
+      this.http
+        .get<SessionResponse>(
+          `${this.authUrl}/me`,
+        )
+        .pipe(
+          tap((response) => {
+            this.userState.set(
+              response.user,
+            );
+          }),
+
+          map(() => true),
+
+          catchError(() => {
+            this.userState.set(null);
+
+            return of(false);
+          }),
+
+          finalize(() => {
+            this.sessionChecked = true;
+
+            this.sessionRestoreRequest =
+              null;
+          }),
+
+          shareReplay({
+            bufferSize: 1,
+            refCount: false,
+          }),
+        );
+
+    this.sessionRestoreRequest =
+      restoreRequest;
+
+    return restoreRequest;
   }
 
-  logoutFromServer(): Observable<void> {
+  logout(): void {
+    this.userState.set(null);
+    this.sessionChecked = true;
+    this.sessionRestoreRequest = null;
+  }
+
+  logoutFromServer():
+    Observable<void> {
     return this.http
       .post<void>(
         `${this.authUrl}/logout`,
@@ -97,9 +162,5 @@ export class Auth {
           this.logout();
         }),
       );
-  }
-
-  getToken(): string | null {
-    return this.tokenState();
   }
 }

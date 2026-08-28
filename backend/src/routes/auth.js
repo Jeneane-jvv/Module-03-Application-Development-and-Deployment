@@ -1,7 +1,12 @@
-const express = require('express');
+﻿const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authenticate = require('../middleware/authenticate');
+
+const {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+} = require('../config/auth-cookie');
 
 const {
   pool,
@@ -100,8 +105,13 @@ router.post('/login', async (req, res) => {
       }
     );
 
-    res.status(200).json({
+    res.cookie(
+      AUTH_COOKIE_NAME,
       token,
+      AUTH_COOKIE_OPTIONS
+    );
+
+    res.status(200).json({
       expiresIn: process.env.JWT_EXPIRES_IN || '1h',
       user: {
         userId: user.userId,
@@ -137,6 +147,11 @@ router.post('/logout', authenticate, async (req, res) => {
         WHERE user_id = $1;
       `,
       [req.user.userId]
+    );
+
+    res.clearCookie(
+      AUTH_COOKIE_NAME,
+      AUTH_COOKIE_OPTIONS
     );
 
     res.status(204).send();

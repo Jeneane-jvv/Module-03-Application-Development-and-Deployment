@@ -1,8 +1,12 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 
 const {
   pool,
 } = require('../config/database');
+
+const {
+  AUTH_COOKIE_NAME,
+} = require('../config/auth-cookie');
 
 if (!process.env.JWT_SECRET) {
   throw new Error(
@@ -11,24 +15,14 @@ if (!process.env.JWT_SECRET) {
 }
 
 async function authenticate(req, res, next) {
-  const authorizationHeader = req.get('Authorization');
-
-  if (
-    !authorizationHeader ||
-    !authorizationHeader.startsWith('Bearer ')
-  ) {
-    return res.status(401).json({
-      error: 'authentication_required',
-      message: 'A valid authentication token is required.',
-    });
-  }
-
-  const token = authorizationHeader.slice(7).trim();
+  const token =
+    req.cookies?.[AUTH_COOKIE_NAME];
 
   if (!token) {
     return res.status(401).json({
       error: 'authentication_required',
-      message: 'A valid authentication token is required.',
+      message:
+        'A valid authentication session is required.',
     });
   }
 

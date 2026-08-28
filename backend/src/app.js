@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -39,6 +40,9 @@ if (
 
 // Reduce unnecessary framework information in HTTP responses.
 app.disable('x-powered-by');
+
+// Parse authentication cookies before protected API routes.
+app.use(cookieParser());
 
 // Accept JSON request bodies while limiting unnecessarily large payloads.
 app.use(
