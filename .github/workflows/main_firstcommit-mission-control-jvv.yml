@@ -1,7 +1,6 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# Build and deploy FirstCommit Engineering Mission Control to Azure App Service.
 
-name: Build and deploy Node.js app to Azure Web App - firstcommit-mission-control-jvv
+name: Build and deploy FirstCommit to Azure
 
 on:
   push:
@@ -12,36 +11,67 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
         with:
           node-version: '24.x'
 
-      - name: Upload artifact for deployment job
+      - name: Build production application
+        run: npm run build
+
+      - name: Verify production build
+        run: |
+          test -f frontend/dist/frontend/browser/index.html
+          test -f backend/src/server.js
+          test -d backend/node_modules
+          echo "Production build verification passed."
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deployment/backend
+          mkdir -p deployment/frontend
+
+          cp package.json deployment/package.json
+
+          cp -R backend/src deployment/backend/src
+          cp backend/package.json deployment/backend/package.json
+          cp backend/package-lock.json deployment/backend/package-lock.json
+          cp -R backend/node_modules deployment/backend/node_modules
+
+          cp -R frontend/dist deployment/frontend/dist
+
+          echo "Deployment package created."
+
+      - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: .
+          name: firstcommit-production
+          path: deployment
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download deployment artifact
         uses: actions/download-artifact@v4
         with:
-          name: node-app
-      
+          name: firstcommit-production
+          path: deployment
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -49,11 +79,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_117997E49350467EACCA363A08FDF002 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EFBCEE499F164E0B826B0BD7808FDCCF }}
 
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'firstcommit-mission-control-jvv'
-          slot-name: 'Production'
-          package: .
-          
+          app-name: firstcommit-mission-control-jvv
+          slot-name: Production
+          package: deployment
