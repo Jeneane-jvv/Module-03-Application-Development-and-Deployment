@@ -533,26 +533,32 @@ Secrets and local database credentials must remain outside Git.
 
 ## Current production boundary
 
-The application is deployed to Azure and the deployed application, service health endpoint, readiness endpoint and backend database readiness have been verified.
+The application is deployed to Azure and the deployed application, service health endpoint, readiness endpoint and backend database connectivity have been verified.
 
 The verified deployment is:
 
 `https://firstcommit-mission-control-jvv-cxepb9ekbufaarcc.southafricanorth-01.azurewebsites.net`
 
-Production verification currently supports claims for:
+Production verification supports claims for:
 
 - a working public Azure deployment;
 - successful application-root response;
 - successful `/api/health` response;
 - successful `/api/ready` response;
 - PostgreSQL availability through the backend;
-- successful Angular production delivery.
+- successful Angular production delivery;
+- live learner and reviewer authentication;
+- HttpOnly, Secure and SameSite=Strict authentication cookies;
+- authenticated session restoration through `/api/auth/me`;
+- enforced learner and reviewer role boundaries;
+- server-side logout and subsequent session invalidation;
+- an actively negotiated PostgreSQL TLS connection using TLS 1.3 with a 256-bit cipher;
+- separation of the runtime database role from database administration and ownership;
+- removal of unnecessary DELETE privileges from the runtime database role.
 
-The following remain separate verification boundaries and are not claimed as independently proven by the health/readiness checks alone:
+The production database runtime role `firstcommit_app` was independently checked and is not a PostgreSQL superuser, cannot create roles or databases, does not own the production database or public schema, cannot create database or schema objects, and inherits no additional roles.
 
-- live login, logout, protected-role and session-restoration workflows;
-- negotiated PostgreSQL TLS connection properties;
-- least-privilege production database permissions.
+The application health and readiness endpoints remain intentionally limited in scope. They report service and database availability; the authentication, TLS and database-permission claims above were verified separately against the live production deployment.
 
 ---
 
