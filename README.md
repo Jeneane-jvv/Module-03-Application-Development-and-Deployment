@@ -18,16 +18,21 @@ The purpose of this repository is not only to show that the application runs. It
 
 ## Current status
 
-The local full-stack application is implemented and has been taken through detailed local testing and hardening.
+The full-stack application is implemented and deployed to Azure App Service.
 
-The current finalization stage is:
+The Azure deployment was completed iteratively. Each deployment exposed the next production-readiness requirement, culminating in secure cookie-based authentication and session restoration in Push 3.
 
-- complete the second Module 03 GitHub push;
-- deploy the verified build to Azure;
-- complete production verification;
-- use Project 04 to record the final testing, debugging and regression evidence.
+Production verification has confirmed:
 
-**No public Azure production deployment is claimed until the live environment has been verified.**
+- the public application root responds successfully;
+- `/api/health` reports the service as available;
+- `/api/ready` reports the database as available;
+- the Angular production application is served successfully;
+- PostgreSQL readiness is confirmed through the backend.
+
+The deployed Push 3 baseline is commit `63cea12`.
+
+Project 04 records the testing, debugging and regression evidence performed against this application.
 
 ---
 
@@ -528,16 +533,26 @@ Secrets and local database credentials must remain outside Git.
 
 ## Current production boundary
 
-The application has passed local implementation, build and testing work, but Azure production verification is still a separate gate.
+The application is deployed to Azure and the deployed application, service health endpoint, readiness endpoint and backend database readiness have been verified.
 
-Until that gate passes, this repository does **not** claim:
+The verified deployment is:
 
-- a verified public Azure URL;
-- completed Azure PostgreSQL production connectivity;
-- completed production smoke testing;
-- completed production regression testing.
+`https://firstcommit-mission-control-jvv-cxepb9ekbufaarcc.southafricanorth-01.azurewebsites.net`
 
-Those claims will only be added after the deployed environment has actually been tested.
+Production verification currently supports claims for:
+
+- a working public Azure deployment;
+- successful application-root response;
+- successful `/api/health` response;
+- successful `/api/ready` response;
+- PostgreSQL availability through the backend;
+- successful Angular production delivery.
+
+The following remain separate verification boundaries and are not claimed as independently proven by the health/readiness checks alone:
+
+- live login, logout, protected-role and session-restoration workflows;
+- negotiated PostgreSQL TLS connection properties;
+- least-privilege production database permissions.
 
 ---
 
