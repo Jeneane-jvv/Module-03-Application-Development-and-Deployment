@@ -78,18 +78,58 @@
           Password
         </label>
 
-        <input
-          id="password"
-          name="password"
-          type="password"
-          formControlName="password"
-          autocomplete="current-password"
-          placeholder="Enter your password"
-          [attr.aria-invalid]="
-            loginForm.controls.password.invalid &&
-            loginForm.controls.password.touched
-          "
-        />
+        <div class="password-input">
+          <input
+            id="password"
+            name="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            [attr.aria-invalid]="
+              loginForm.controls.password.invalid &&
+              loginForm.controls.password.touched
+            "
+          />
+
+          <button
+            class="password-toggle"
+            type="button"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="
+              showPassword()
+                ? 'Hide password'
+                : 'Show password'
+            "
+            [attr.aria-pressed]="showPassword()"
+          >
+            @if (showPassword()) {
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.8 10.8 0 0 1 12 4c5 0 9 4 10 8a11.8 11.8 0 0 1-2.1 4.1M6.2 6.2A12.1 12.1 0 0 0 2 12c1 4 5 8 10 8a10.8 10.8 0 0 0 4.1-.8"
+                />
+              </svg>
+            } @else {
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2 12s3.5-8 10-8 10 8 10 8-3.5 8-10 8S2 12 2 12z"
+                />
+
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                />
+              </svg>
+            }
+          </button>
+        </div>
 
         @if (
           loginForm.controls.password.touched &&

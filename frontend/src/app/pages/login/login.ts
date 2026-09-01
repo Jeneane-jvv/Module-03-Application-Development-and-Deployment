@@ -45,6 +45,9 @@ export class Login {
   readonly isSubmitting =
     signal(false);
 
+  readonly showPassword =
+    signal(false);
+
   readonly loginForm =
     new FormGroup({
       email: new FormControl('', {
@@ -62,6 +65,12 @@ export class Login {
         ],
       }),
     });
+
+  togglePasswordVisibility(): void {
+    this.showPassword.update(
+      (visible) => !visible,
+    );
+  }
 
   onSubmit(): void {
     this.loginError.set(null);
