@@ -1626,3 +1626,13 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   SUBMITTED INVESTIGATION CONFIRMATION
+   ========================================================= */
+
+/* Submitted investigation confirmation layout */
+.investigation-complete + .reasoning-form__message {
+  max-width: 920px;
+  margin-top: 1rem;
+}
