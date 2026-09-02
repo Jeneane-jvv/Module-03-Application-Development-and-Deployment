@@ -1,7 +1,18 @@
 # Project 03 — Application Development and Deployment
 
 **FirstCommit Engineering Mission Control | Angular + Express + PostgreSQL**
+## Portfolio Snapshot
 
+| | |
+|---|---|
+| **Live App** | [Open FirstCommit](https://firstcommit-mission-control-jvv-cxepb9ekbufaarcc.southafricanorth-01.azurewebsites.net) |
+| **Stack** | Angular 22 · TypeScript · Node.js 24 · Express 5 · PostgreSQL |
+| **What I Built** | Full-stack engineering investigation platform with learner and reviewer workflows |
+| **Testing** | Functional · Security · Regression · Production verification |
+| **Deployment** | Azure App Service · Azure Database for PostgreSQL · GitHub Actions |
+| **Status** | ✅ Deployed and production verified |
+
+---
 FirstCommit is the third repository in my software-engineering portfolio journey.
 
 It carries the system thinking from **Project 01 — Documentation and System Design** and the data-layer foundations from **Project 02 — Database Design and Manipulation** into a working full-stack application.
@@ -30,7 +41,9 @@ Production verification has confirmed:
 - the Angular production application is served successfully;
 - PostgreSQL readiness is confirmed through the backend.
 
-The deployed Push 3 baseline is commit `63cea12`.
+The Push 3 authentication milestone is commit `63cea12`.
+
+The current and final production baseline is commit `42449e4c6e1961f673046738a9a4435b6ca6d03d`.
 
 Project 04 records the testing, debugging and regression evidence performed against this application.
 
